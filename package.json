@@ -1,0 +1,29 @@
+{
+  "name": "3box-pinning-server",
+  "version": "1.0.0",
+  "description": "IPFS Node that runs OrbitDB under the hood",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uport-project/3box-pinning-server.git"
+  },
+  "keywords": [
+    "ipfs",
+    "orbitdb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/uport-project/3box-pinning-server/issues"
+  },
+  "homepage": "https://github.com/uport-project/3box-pinning-server#readme",
+  "dependencies": {
+    "ipfs": "^0.32.3",
+    "ipfs-pubsub-room": "^1.4.0",
+    "orbit-db": "^0.19.9"
+  }
+}
