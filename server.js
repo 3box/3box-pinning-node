@@ -3,7 +3,6 @@
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
-const Room = require('ipfs-pubsub-room')
 
 const ipfsOptions = {
   EXPERIMENTAL: {
@@ -21,29 +20,10 @@ let openDBs = {}
 ipfs.on('error', (e) => console.error(e))
 ipfs.on('ready', async () => {
   console.log(await ipfs.id())
-  const room = Room(ipfs, '3box')
   const orbitdb = new OrbitDB(ipfs, ORBITDB_PATH)
   const pubsub = new Pubsub(ipfs, (await ipfs.id()).id)
 
   pubsub.subscribe(PINNING_ROOM, onMessage, onNewPeer)
-
-  room.on('peer joined', (peer) => {
-    console.log('Peer joined the room', peer)
-  })
-
-  room.on('peer left', (peer) => {
-    console.log('Peer left...', peer)
-  })
-
-  room.on('subscribed', () => {
-    console.log('Connected to the room')
-  })
-
-  room.on('message', async (message) => {
-    let msgData = message.data.toString()
-    console.log('incoming message', msgData)
-    openRootDB(msgData)
-  })
 
   async function openRootDB (address) {
     if (!openDBs[address]) {
