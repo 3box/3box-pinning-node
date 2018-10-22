@@ -6,7 +6,7 @@ The pinning server is a node.js process that is running using a the PM2 process 
 
 Server deployment is manual at the moment. Continuous deployment is gonna be added in the future.
 
-To deploy it you should enter `ssh` into the machine.
+To deploy it you should enter `ssh` into the machine, and then `cd` into `3box-pinning-server`
 Inside the home folder you need to execute
 
 `./deploy.sh`
