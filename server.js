@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+require('dotenv').config()
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
