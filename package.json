@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/uport-project/3box-pinning-server#readme",
   "dependencies": {
+    "dotenv": "^6.1.0",
     "ipfs": "^0.32.3",
     "orbit-db": "^0.19.9"
   }
