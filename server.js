@@ -4,22 +4,42 @@ require('dotenv').config()
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
+const DaemonFactory = require('ipfsd-ctl')
+const fs = require('fs')
 
-const ipfsOptions = {
-  EXPERIMENTAL: {
-    pubsub: true
-  }
-}
 const ORBITDB_PATH = '/opt/orbitdb'
+const IPFS_PATH = '/opt/ipfs'
 const PINNING_ROOM = '3box-pinning'
-
-// Create IPFS instance
-const ipfs = new IPFS(ipfsOptions)
 
 let openDBs = {}
 
-ipfs.on('error', (e) => console.error(e))
-ipfs.on('ready', async () => {
+pinningNode()
+
+async function startIpfsDaemon () {
+  // ipfsd-ctl creates a weird 'api' file, it won't start the node if it's present
+  // https://github.com/ipfs/js-ipfsd-ctl/issues/226
+  fs.unlinkSync(IPFS_PATH + '/api')
+  return new Promise((resolve, reject) => {
+    DaemonFactory
+      .create({ type: 'js' })
+      .spawn({ disposable: false, repoPath: IPFS_PATH, defaultAddrs: true }, async (err, ipfsd) => {
+        if (err) reject(err)
+        // init repo if not initialized
+        await new Promise((resolve, reject) => { ipfsd.init(resolve) })
+        // start the daemon
+        await new Promise((resolve, reject) => {
+          ipfsd.start(['--enable-pubsub-experiment'], (err) => {
+            if (err) reject(err)
+            resolve()
+          })
+        })
+        resolve(ipfsd.api)
+      })
+  })
+}
+
+async function pinningNode () {
+  const ipfs = await startIpfsDaemon()
   console.log(await ipfs.id())
   const orbitdb = new OrbitDB(ipfs, ORBITDB_PATH)
   const pubsub = new Pubsub(ipfs, (await ipfs.id()).id)
@@ -112,4 +132,4 @@ ipfs.on('ready', async () => {
   async function onNewPeer (topic, peer) {
     console.log('peer joined room', topic, peer)
   }
-})
+}

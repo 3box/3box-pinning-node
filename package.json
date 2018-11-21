@@ -24,6 +24,7 @@
   "dependencies": {
     "dotenv": "^6.1.0",
     "ipfs": "^0.32.3",
+    "ipfsd-ctl": "^0.39.3",
     "orbit-db": "^0.19.9"
   }
 }
