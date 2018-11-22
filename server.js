@@ -18,7 +18,7 @@ pinningNode()
 async function startIpfsDaemon () {
   // ipfsd-ctl creates a weird 'api' file, it won't start the node if it's present
   // https://github.com/ipfs/js-ipfsd-ctl/issues/226
-  fs.unlinkSync(IPFS_PATH + '/api')
+  await new Promise((resolve, reject) => { fs.unlink(IPFS_PATH + '/api', resolve) })
   return new Promise((resolve, reject) => {
     DaemonFactory
       .create({ type: 'js' })
