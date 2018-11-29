@@ -5,6 +5,17 @@
 
 The pinning server is an ipfs and orbit-db node that persists the data of 3box users.
 
+## Run as command line tool
+
+```bash
+# Install via npm
+(sudo) npm install 3box-pinning-server --global
+# Install via yarn
+yarn global add 3box-pinning-server
+# Run server
+(sudo) 3box-pinning-server
+```
+
 ## Pubsub messages
 
 #### request to pin
