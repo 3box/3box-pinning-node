@@ -208,6 +208,22 @@ app.get("/profile", async (req, res, next) => {
   if (!cacheProfile) cache.write(rootStoreAddress, profile)
 });
 
+app.get("/profiles", async (req, res, next) => {
+  const rootStoreAddressArray = req.query.ids.split(',')
+  const profilePromiseArray = rootStoreAddressArray.map(async (rootStoreAddress) => {
+    const cacheProfile = await cache.read(rootStoreAddress)
+    const profile = cacheProfile || await getProfile(rootStoreAddress)
+    if (!cacheProfile) cache.write(rootStoreAddress, profile)
+    return {rootStoreAddress, profile}
+  })
+  const profiles = await Promise.all(profilePromiseArray)
+  const parsed = profiles.reduce((acc, val) => {
+    acc[val['rootStoreAddress']] = val['profile']
+    return acc
+  }, {})
+  res.json(parsed)
+});
+
 app.listen(7000, () => {
  console.log("Server running on port 7000");
 });
