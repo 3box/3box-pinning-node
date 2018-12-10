@@ -7,13 +7,15 @@ const Pubsub = require('orbit-db-pubsub')
 const DaemonFactory = require('ipfsd-ctl')
 const fs = require('fs')
 
+const express = require("express");
+const bodyParser = require('body-parser')
+
 const ORBITDB_PATH = '/opt/orbitdb'
 const IPFS_PATH = '/opt/ipfs'
 const PINNING_ROOM = '3box-pinning'
 
 let openDBs = {}
 
-pinningNode()
 
 async function startIpfsDaemon () {
   // ipfsd-ctl creates a weird 'api' file, it won't start the node if it's present
@@ -38,10 +40,16 @@ async function startIpfsDaemon () {
   })
 }
 
+
+// TODO just move starting ipfs and orbitdb to another function
+
+
+let orbitdb, ipfs
+
 async function pinningNode () {
-  const ipfs = await startIpfsDaemon()
+  ipfs = await startIpfsDaemon()
   console.log(await ipfs.id())
-  const orbitdb = new OrbitDB(ipfs, ORBITDB_PATH)
+  orbitdb = new OrbitDB(ipfs, ORBITDB_PATH)
   const pubsub = new Pubsub(ipfs, (await ipfs.id()).id)
 
   pubsub.subscribe(PINNING_ROOM, onMessage, onNewPeer)
@@ -133,3 +141,67 @@ async function pinningNode () {
     console.log('peer joined room', topic, peer)
   }
 }
+
+pinningNode()
+
+
+const app = express();
+
+
+app.use(bodyParser.json());
+
+app.get("/profile/:address", async (req, res, next) => {
+
+  // TODO seperate in to functions, clean up
+    console.time('get Profile')
+  // req.params.address
+  console.log(req.params.address)
+  const rootStoreAddress = req.params.address
+  // const profile = getProfile(req.params.address)
+  const rootStore = await orbitdb.open(rootStoreAddress)
+  const readyPromise = new Promise((resolve, reject) => {
+    rootStore.events.on('ready', resolve)
+  })
+  rootStore.load()
+  await readyPromise
+
+  await Promise.resolve(resolve => {
+  rootStore.events.on('replicated', resolve)
+})
+
+  const profileEntry = rootStore
+    .iterator({ limit: -1 })
+    .collect()
+    .find(entry => {
+      return entry.payload.value.odbAddress.split('.')[1] === 'public'
+    })
+
+    console.log('publicStore')
+    console.log(profileEntry.payload.value.odbAddress)
+    const publicStore = await orbitdb.open(profileEntry.payload.value.odbAddress)
+    const readyPromisePublic = new Promise((resolve, reject) => {
+      publicStore.events.on('ready', resolve)
+    })
+    publicStore.load()
+    await readyPromisePublic
+    await Promise.resolve(resolve => {
+    publicStore.events.on('replicated', resolve)
+  })
+
+    const profile = publicStore.all()
+    console.log(profile)
+
+    await rootStore.close()
+    await publicStore.close()
+
+    // return profile
+    let parsedProfile = {}
+    Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
+
+    console.timeEnd('get Profile')
+  res.json(parsedProfile);
+});
+
+app.listen(7000, () => {
+ console.log("Server running on port 7000");
+});
