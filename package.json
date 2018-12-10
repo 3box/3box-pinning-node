@@ -28,6 +28,7 @@
     "ipfs": "^0.32.3",
     "ipfsd-ctl": "^0.39.3",
     "orbit-db": "^0.19.9",
+    "redis": "^2.8.0",
     "webrtcsupport": "^2.2.0"
   },
   "bin": {

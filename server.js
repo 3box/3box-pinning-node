@@ -6,13 +6,16 @@ const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const DaemonFactory = require('ipfsd-ctl')
 const fs = require('fs')
-
 const express = require("express");
-const bodyParser = require('body-parser')
+const RedisCache = require('./cache')
 
 const ORBITDB_PATH = '/opt/orbitdb'
 const IPFS_PATH = '/opt/ipfs'
 const PINNING_ROOM = '3box-pinning'
+
+const days15 = 60 * 60 * 24 * 15
+const cache = new RedisCache({}, days15)
+
 
 let openDBs = {}
 
@@ -42,8 +45,6 @@ async function startIpfsDaemon () {
 
 
 // TODO just move starting ipfs and orbitdb to another function
-
-
 let orbitdb, ipfs
 
 async function pinningNode () {
@@ -55,6 +56,7 @@ async function pinningNode () {
   pubsub.subscribe(PINNING_ROOM, onMessage, onNewPeer)
 
   async function openRootDB (address) {
+
     if (!openDBs[address]) {
       openDBs[address] = await orbitdb.open(address)
       openDBs[address].events.on('ready', () => {
@@ -88,6 +90,8 @@ async function pinningNode () {
         openDB(odbAddress)
       })
     }
+
+    cache.invalidate(address)
   }
 
   async function openDB (address) {
@@ -145,18 +149,8 @@ async function pinningNode () {
 pinningNode()
 
 
-const app = express();
 
-
-app.use(bodyParser.json());
-
-app.get("/profile/:address", async (req, res, next) => {
-
-  // TODO seperate in to functions, clean up
-    console.time('get Profile')
-  // req.params.address
-  console.log(req.params.address)
-  const rootStoreAddress = req.params.address
+const getProfile = async (rootStoreAddress) => {
   // const profile = getProfile(req.params.address)
   const rootStore = await orbitdb.open(rootStoreAddress)
   const readyPromise = new Promise((resolve, reject) => {
@@ -166,8 +160,8 @@ app.get("/profile/:address", async (req, res, next) => {
   await readyPromise
 
   await Promise.resolve(resolve => {
-  rootStore.events.on('replicated', resolve)
-})
+    rootStore.events.on('replicated', resolve)
+  })
 
   const profileEntry = rootStore
     .iterator({ limit: -1 })
@@ -197,9 +191,21 @@ app.get("/profile/:address", async (req, res, next) => {
     // return profile
     let parsedProfile = {}
     Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
+    // console.timeEnd('get Profile')
+    return parsedProfile
 
-    console.timeEnd('get Profile')
-  res.json(parsedProfile);
+}
+
+
+
+const app = express();
+
+app.get("/profile", async (req, res, next) => {
+  const rootStoreAddress = req.query.id
+  const cacheProfile = await cache.read(rootStoreAddress)
+  const profile = cacheProfile || await getProfile(rootStoreAddress)
+  res.json(profile)
+  if (!cacheProfile) cache.write(rootStoreAddress, profile)
 });
 
 app.listen(7000, () => {
