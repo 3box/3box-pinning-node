@@ -9,18 +9,19 @@ const fs = require('fs')
 const express = require("express");
 const RedisCache = require('./cache')
 const axios = require('axios');
-const ADDRESS_SERVER_URL = 'https://beta.3box.io/address-server'
 
+const ADDRESS_SERVER_URL = 'https://beta.3box.io/address-server'
 const ORBITDB_PATH = '/opt/orbitdb'
 const IPFS_PATH = '/opt/ipfs'
 const PINNING_ROOM = '3box-pinning'
+//TODO move to to env configs
+const REDIS_PATH = 'profilecache.h9luwi.0001.usw2.cache.amazonaws.com'
 
-const days15 = 60 * 60 * 24 * 15
-const cache = new RedisCache({}, days15)
-
+const days15 = 60 * 60 * 24 * 15   // 15 day ttl
+// const cache = new RedisCache({ host: REDIS_PATH }, days15)
+const cache = new RedisCache()
 
 let openDBs = {}
-
 
 async function startIpfsDaemon () {
   // ipfsd-ctl creates a weird 'api' file, it won't start the node if it's present
@@ -151,9 +152,11 @@ async function pinningNode () {
 pinningNode()
 
 
+/*********************
+ *    Profile API    *
+ *********************/
 
 const getProfile = async (rootStoreAddress) => {
-  // const profile = getProfile(req.params.address)
   const rootStore = await orbitdb.open(rootStoreAddress)
   const readyPromise = new Promise((resolve, reject) => {
     rootStore.events.on('ready', resolve)
@@ -172,33 +175,28 @@ const getProfile = async (rootStoreAddress) => {
       return entry.payload.value.odbAddress.split('.')[1] === 'public'
     })
 
-    console.log('publicStore')
-    console.log(profileEntry.payload.value.odbAddress)
-    const publicStore = await orbitdb.open(profileEntry.payload.value.odbAddress)
-    const readyPromisePublic = new Promise((resolve, reject) => {
-      publicStore.events.on('ready', resolve)
-    })
-    publicStore.load()
-    await readyPromisePublic
-    await Promise.resolve(resolve => {
+  const publicStore = await orbitdb.open(profileEntry.payload.value.odbAddress)
+  const readyPromisePublic = new Promise((resolve, reject) => {
+    publicStore.events.on('ready', resolve)
+  })
+  publicStore.load()
+  await readyPromisePublic
+  await Promise.resolve(resolve => {
     publicStore.events.on('replicated', resolve)
   })
 
-    const profile = publicStore.all()
-    console.log(profile)
+  const profile = publicStore.all()
 
-    await rootStore.close()
-    await publicStore.close()
+  await rootStore.close()
+  await publicStore.close()
 
-    // return profile
-    let parsedProfile = {}
-    Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
-    // console.timeEnd('get Profile')
-    return parsedProfile
-
+  let parsedProfile = {}
+  Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
+  return parsedProfile
 }
 
-const app = express();
+const app = express()
+app.use(express.json())
 
 app.get("/profile", async (req, res, next) => {
   const address = req.query.address.toLowerCase()
@@ -212,8 +210,11 @@ app.get("/profile", async (req, res, next) => {
 });
 
 // TODO return {address: profile} or return array of [{address: profile}].
-app.get("/profileList", async (req, res, next) => {
-  const addressArray = req.query.addressList.split(',').map(val => val.toLowerCase())
+// Request body of form { addressList: ['address1', 'address2', ...]}
+app.post("/profileList", async (req, res, next) => {
+  const body = req.body
+  if (!body.addressList) res.status(500).send('Error: AddressList not given')
+  const addressArray = body.addressList.map(val => val.toLowerCase())
   const request = `${ADDRESS_SERVER_URL}/odbAddresses/`
   const getRes = await axios.post(request, { identities: addressArray })
   const rootStoreAddresses = getRes.data.data.rootStoreAddresses
@@ -225,18 +226,18 @@ app.get("/profileList", async (req, res, next) => {
       const cacheProfile = await cache.read(rootStoreAddress)
       const profile = cacheProfile || await getProfile(rootStoreAddress)
       if (!cacheProfile) cache.write(rootStoreAddress, profile)
-      return {rootStoreAddress, profile}
-  })
+      return {address: key , profile}
+    })
 
   const profiles = await Promise.all(profilePromiseArray)
   const parsed = profiles.reduce((acc, val) => {
-    acc[val['rootStoreAddress']] = val['profile']
+    acc[val['address']] = val['profile']
     return acc
   }, {})
 
   res.json(parsed)
 });
 
-app.listen(7000, () => {
- console.log("Server running on port 7000");
+app.listen(8080, () => {
+ console.log("Server running on port 8080");
 });
