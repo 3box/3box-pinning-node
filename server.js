@@ -8,6 +8,8 @@ const DaemonFactory = require('ipfsd-ctl')
 const fs = require('fs')
 const express = require("express");
 const RedisCache = require('./cache')
+const axios = require('axios');
+const ADDRESS_SERVER_URL = 'https://beta.3box.io/address-server'
 
 const ORBITDB_PATH = '/opt/orbitdb'
 const IPFS_PATH = '/opt/ipfs'
@@ -196,31 +198,42 @@ const getProfile = async (rootStoreAddress) => {
 
 }
 
-
-
 const app = express();
 
 app.get("/profile", async (req, res, next) => {
-  const rootStoreAddress = req.query.id
+  const address = req.query.address.toLowerCase()
+  const request = `${ADDRESS_SERVER_URL}/odbAddress/${address}`
+  const getRes = await axios.get(request)
+  const rootStoreAddress = getRes.data.data.rootStoreAddress
   const cacheProfile = await cache.read(rootStoreAddress)
   const profile = cacheProfile || await getProfile(rootStoreAddress)
   res.json(profile)
   if (!cacheProfile) cache.write(rootStoreAddress, profile)
 });
 
-app.get("/profiles", async (req, res, next) => {
-  const rootStoreAddressArray = req.query.ids.split(',')
-  const profilePromiseArray = rootStoreAddressArray.map(async (rootStoreAddress) => {
-    const cacheProfile = await cache.read(rootStoreAddress)
-    const profile = cacheProfile || await getProfile(rootStoreAddress)
-    if (!cacheProfile) cache.write(rootStoreAddress, profile)
-    return {rootStoreAddress, profile}
+// TODO return {address: profile} or return array of [{address: profile}].
+app.get("/profileList", async (req, res, next) => {
+  const addressArray = req.query.addressList.split(',').map(val => val.toLowerCase())
+  const request = `${ADDRESS_SERVER_URL}/odbAddresses/`
+  const getRes = await axios.post(request, { identities: addressArray })
+  const rootStoreAddresses = getRes.data.data.rootStoreAddresses
+
+  const profilePromiseArray = Object.keys(rootStoreAddresses)
+    .filter((key) => !!rootStoreAddresses[key])
+    .map(async (key) => {
+      const rootStoreAddress = rootStoreAddresses[key]
+      const cacheProfile = await cache.read(rootStoreAddress)
+      const profile = cacheProfile || await getProfile(rootStoreAddress)
+      if (!cacheProfile) cache.write(rootStoreAddress, profile)
+      return {rootStoreAddress, profile}
   })
+
   const profiles = await Promise.all(profilePromiseArray)
   const parsed = profiles.reduce((acc, val) => {
     acc[val['rootStoreAddress']] = val['profile']
     return acc
   }, {})
+
   res.json(parsed)
 });
 
