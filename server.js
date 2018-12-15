@@ -18,8 +18,8 @@ const PINNING_ROOM = '3box-pinning'
 const REDIS_PATH = 'profilecache.h9luwi.0001.usw2.cache.amazonaws.com'
 
 const days15 = 60 * 60 * 24 * 15   // 15 day ttl
-// const cache = new RedisCache({ host: REDIS_PATH }, days15)
-const cache = new RedisCache()
+const cache = new RedisCache({ host: REDIS_PATH }, days15)
+// const cache = new RedisCache()
 
 let openDBs = {}
 
@@ -238,6 +238,6 @@ app.post("/profileList", async (req, res, next) => {
   res.json(parsed)
 });
 
-app.listen(8080, () => {
- console.log("Server running on port 8080");
+app.listen(8081, () => {
+ console.log("Server running on port 8081");
 });
