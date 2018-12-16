@@ -46,16 +46,17 @@ async function startIpfsDaemon () {
   })
 }
 
+let orbitdb, ipfs, pubsub
 
-// TODO just move starting ipfs and orbitdb to another function
-let orbitdb, ipfs
-
-async function pinningNode () {
+async function initServices() {
   ipfs = await startIpfsDaemon()
   console.log(await ipfs.id())
   orbitdb = new OrbitDB(ipfs, ORBITDB_PATH)
-  const pubsub = new Pubsub(ipfs, (await ipfs.id()).id)
+  pubsub = new Pubsub(ipfs, (await ipfs.id()).id)
+  return
+}
 
+async function pinningNode () {
   pubsub.subscribe(PINNING_ROOM, onMessage, onNewPeer)
 
   async function openRootDB (address) {
@@ -149,24 +150,22 @@ async function pinningNode () {
   }
 }
 
-pinningNode()
-
-
 /*********************
  *    Profile API    *
  *********************/
 
 const getProfile = async (rootStoreAddress) => {
-  const rootStore = await orbitdb.open(rootStoreAddress)
-  const readyPromise = new Promise((resolve, reject) => {
-    rootStore.events.on('ready', resolve)
-  })
-  rootStore.load()
-  await readyPromise
-
-  await Promise.resolve(resolve => {
-    rootStore.events.on('replicated', resolve)
-  })
+  let rootStore
+  if (!openDBs[rootStoreAddress]) {
+    rootStore = await orbitdb.open(rootStoreAddress)
+    const readyPromise = new Promise((resolve, reject) => {
+      rootStore.events.on('ready', resolve)
+    })
+    rootStore.load()
+    await readyPromise
+  } else {
+    rootStore = openDBs[rootStoreAddress]
+  }
 
   const profileEntry = rootStore
     .iterator({ limit: -1 })
@@ -175,20 +174,21 @@ const getProfile = async (rootStoreAddress) => {
       return entry.payload.value.odbAddress.split('.')[1] === 'public'
     })
 
-  const publicStore = await orbitdb.open(profileEntry.payload.value.odbAddress)
-  const readyPromisePublic = new Promise((resolve, reject) => {
-    publicStore.events.on('ready', resolve)
-  })
-  publicStore.load()
-  await readyPromisePublic
-  await Promise.resolve(resolve => {
-    publicStore.events.on('replicated', resolve)
-  })
+  const pubStoreAddress = profileEntry.payload.value.odbAddress
+
+  let publicStore
+  if (!openDBs[pubStoreAddress]) {
+    publicStore = await orbitdb.open(pubStoreAddress)
+    const readyPromisePublic = new Promise((resolve, reject) => {
+      publicStore.events.on('ready', resolve)
+    })
+    publicStore.load()
+    await readyPromisePublic
+  } else {
+    publicStore = openDBs[pubStoreAddress]
+  }
 
   const profile = publicStore.all()
-
-  await rootStore.close()
-  await publicStore.close()
 
   let parsedProfile = {}
   Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
@@ -204,7 +204,13 @@ app.get("/profile", async (req, res, next) => {
   const getRes = await axios.get(request)
   const rootStoreAddress = getRes.data.data.rootStoreAddress
   const cacheProfile = await cache.read(rootStoreAddress)
-  const profile = cacheProfile || await getProfile(rootStoreAddress)
+  let profile
+  try {
+    profile = cacheProfile || await getProfile(rootStoreAddress)
+  } catch(e) {
+    res.status(500).send('Error: Failed to load profile')
+    return
+  }
   res.json(profile)
   if (!cacheProfile) cache.write(rootStoreAddress, profile)
 });
@@ -238,6 +244,16 @@ app.post("/profileList", async (req, res, next) => {
   res.json(parsed)
 });
 
-app.listen(8081, () => {
- console.log("Server running on port 8081");
-});
+/**************************************
+ *    Start Pinning Service and API   *
+ **************************************/
+
+async function start() {
+  await initServices()
+  pinningNode()
+  app.listen(8081, () => {
+   console.log("Server running on port 8081");
+  })
+}
+
+start()
