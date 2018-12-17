@@ -4,8 +4,6 @@ require('dotenv').config()
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
-const DaemonFactory = require('ipfsd-ctl')
-const fs = require('fs')
 const express = require("express");
 const RedisCache = require('./cache')
 const axios = require('axios');
@@ -20,29 +18,20 @@ const REDIS_PATH = 'profilecache.h9luwi.0001.usw2.cache.amazonaws.com'
 const days15 = 60 * 60 * 24 * 15   // 15 day ttl
 const cache = new RedisCache({ host: REDIS_PATH }, days15)
 // const cache = new RedisCache()
+const ipfsOptions = {
+  EXPERIMENTAL: {
+    pubsub: true
+  }
+}
 
 let openDBs = {}
 
 async function startIpfsDaemon () {
-  // ipfsd-ctl creates a weird 'api' file, it won't start the node if it's present
-  // https://github.com/ipfs/js-ipfsd-ctl/issues/226
-  await new Promise((resolve, reject) => { fs.unlink(IPFS_PATH + '/api', resolve) })
+  // Create IPFS instance
+  const ipfs = new IPFS(ipfsOptions)
   return new Promise((resolve, reject) => {
-    DaemonFactory
-      .create({ type: 'js' })
-      .spawn({ disposable: false, repoPath: IPFS_PATH, defaultAddrs: true }, async (err, ipfsd) => {
-        if (err) reject(err)
-        // init repo if not initialized
-        await new Promise((resolve, reject) => { ipfsd.init(resolve) })
-        // start the daemon
-        await new Promise((resolve, reject) => {
-          ipfsd.start(['--enable-pubsub-experiment'], (err) => {
-            if (err) reject(err)
-            resolve()
-          })
-        })
-        resolve(ipfsd.api)
-      })
+    ipfs.on('error', (e) => console.error(e))
+    ipfs.on('ready', () => resolve(ipfs))
   })
 }
 
@@ -50,9 +39,10 @@ let orbitdb, ipfs, pubsub
 
 async function initServices() {
   ipfs = await startIpfsDaemon()
-  console.log(await ipfs.id())
+  const ipfsId = await ipfs.id()
+  console.log(ipfsId)
   orbitdb = new OrbitDB(ipfs, ORBITDB_PATH)
-  pubsub = new Pubsub(ipfs, (await ipfs.id()).id)
+  pubsub = new Pubsub(ipfs, ipfsId.id)
   return
 }
 
