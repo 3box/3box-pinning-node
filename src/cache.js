@@ -1,16 +1,19 @@
-const redis = require("redis")
+const redis = require('redis')
+
+const DAYS30 = 2592000
+
+
 /**
   *  RedisCache Representation. Wrapped redis client. Read, write, and invalidate objects.
   */
-
 class RedisCache {
   constructor (redisOpts = {}, ttl) {
-    this.redis = redis.createClient(redisOpts);
-    this.redis.on("error", function (err) {
-        console.log("Error " + err);
-    });
-    const days30 = 2592000
-    this.ttl = ttl  || days30
+    console.log(redis)
+    this.redis = redis.createClient(redisOpts)
+    this.redis.on('error', function (err) {
+      console.log('Error ' + err)
+    })
+    this.ttl = ttl || DAYS30
   }
 
   read (key) {
@@ -22,11 +25,11 @@ class RedisCache {
     })
   }
 
-  write(key, obj) {
+  write (key, obj) {
     this.redis.set(key, JSON.stringify(obj), 'EX', this.ttl)
   }
 
-  invalidate(key) {
+  invalidate (key) {
     this.redis.del(key)
   }
 }
