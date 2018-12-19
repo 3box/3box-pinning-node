@@ -9,7 +9,6 @@ const IPFS_OPTIONS = {
   }
 }
 
-
 /**
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
@@ -28,7 +27,6 @@ class Pinning {
     this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
-    return
   }
 
   async getProfile (address) {
