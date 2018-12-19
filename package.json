@@ -30,6 +30,9 @@
     "orbit-db": "^0.19.9",
     "redis": "^2.8.0"
   },
+  "jest": {
+    "testEnvironment": "node"
+  },
   "bin": {
     "3box-pinning-server": "./src/node.js"
   },

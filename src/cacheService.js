@@ -8,13 +8,13 @@ class CacheService {
     this.addressServer = addressServer
     this.app = express()
     this.app.use(express.json())
-    this.app.get('/profile', this.getProfile)
-    this.app.post('/profileList', this.getProfiles)
+    this.app.get('/profile', this.getProfile.bind(this))
+    this.app.post('/profileList', this.getProfiles.bind(this))
   }
 
   start () {
     this.app.listen(8081, () => {
-      console.log('Server running on port 8081')
+      console.log('Cache service running on port 8081')
     })
   }
 

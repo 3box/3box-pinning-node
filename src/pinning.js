@@ -9,6 +9,7 @@ const IPFS_OPTIONS = {
   }
 }
 
+
 /**
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
@@ -27,6 +28,7 @@ class Pinning {
     this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
+    return
   }
 
   async getProfile (address) {
@@ -119,7 +121,9 @@ class Pinning {
 
   async _initIpfs () {
     // Create IPFS instance
-    const ipfs = new IPFS(IPFS_OPTIONS)
+    let ipfsOpts = IPFS_OPTIONS
+    if (this.ipfsPath) ipfsOpts.repo = this.ipfsPath
+    const ipfs = new IPFS(ipfsOpts)
     return new Promise((resolve, reject) => {
       ipfs.on('error', (e) => console.error(e))
       ipfs.on('ready', () => resolve(ipfs))
