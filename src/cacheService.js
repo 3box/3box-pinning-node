@@ -21,7 +21,13 @@ class CacheService {
   async getProfile (req, res, next) {
     const address = req.query.address.toLowerCase()
     const request = `${this.addressServer}/odbAddress/${address}`
-    const getRes = await axios.get(request)
+    let getRes
+    try {
+      getRes = await axios.get(request)
+    } catch (e) {
+      res.status(404).send({ status: 'error', message: 'Address link not found, address does not have a 3Box or is malformed' })
+      return
+    }
     const rootStoreAddress = getRes.data.data.rootStoreAddress
     const cacheProfile = await this.cache.read(rootStoreAddress)
     let profile
@@ -42,7 +48,13 @@ class CacheService {
     if (!body.addressList) res.status(500).send('Error: AddressList not given')
     const addressArray = body.addressList.map(val => val.toLowerCase())
     const request = `${this.addressServer}/odbAddresses/`
-    const getRes = await axios.post(request, { identities: addressArray })
+    let getRes
+    try {
+      getRes = await axios.post(request, { identities: addressArray })
+    } catch (e) {
+      res.status(404).send({ status: 'error', message: 'Addresses links not found, addressList is likely malformed' })
+      return
+    }
     const rootStoreAddresses = getRes.data.data.rootStoreAddresses
 
     const profilePromiseArray = Object.keys(rootStoreAddresses)
