@@ -32,4 +32,19 @@ class RedisCache {
   }
 }
 
-module.exports = RedisCache
+/**
+  *  NullCache implements an abstract cache interface without caching any
+  *  data. Primarly used for testing and development.
+  */
+
+class NullCache {
+  read (key) {
+    return Promise.resolve(null)
+  }
+
+  write (key, obj) { }
+
+  invalidate (key) { }
+}
+
+module.exports = { RedisCache, NullCache }
