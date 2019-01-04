@@ -1,3 +1,7 @@
+# ipfs & orbitdb data
+dev-data/
+
+
 # Logs
 logs
 *.log
