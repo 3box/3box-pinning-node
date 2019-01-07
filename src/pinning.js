@@ -1,3 +1,4 @@
+require('dotenv').config()
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
@@ -13,11 +14,12 @@ const IPFS_OPTIONS = {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsPath, orbitdbPath) {
+  constructor (cache, ipfsPath, orbitdbPath, analytics) {
     this.cache = cache
     this.ipfsPath = ipfsPath
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
+    this.analytics = analytics
   }
 
   async start () {
@@ -49,6 +51,14 @@ class Pinning {
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
       this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
+      // record a getProfile integration
+      this.analytics.track({
+        event: 'GetProfile',
+        anonymousId: '3box',
+        properties: {
+          address: address
+        }
+      })
     })
   }
 
@@ -74,6 +84,13 @@ class Pinning {
           }
         }
       )
+      this.analytics.track({
+        event: 'OpenDB',
+        anonymousId: '3box',
+        properties: {
+          address: address
+        }
+      })
     } else {
       responseFn(address)
     }
@@ -110,6 +127,13 @@ class Pinning {
     if (!data.type || data.type === 'PIN_DB') {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
+      this.analytics.track({
+        event: 'PinData',
+        anonymousId: '3box',
+        properties: {
+          address: data.odbAddress
+        }
+      })
     }
   }
 

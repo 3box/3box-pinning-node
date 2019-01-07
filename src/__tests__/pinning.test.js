@@ -17,10 +17,14 @@ const cache = {
 describe('Pinning', () => {
   let pinning
   let testClient
+  let analyticsMock
   jest.setTimeout(10000)
 
   beforeAll(async () => {
-    pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1)
+    analyticsMock = {
+      track: jest.fn()
+    }
+    pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
@@ -175,7 +179,6 @@ class TestClient {
     await this.pubsub.disconnect()
   }
 }
-
 
 const CONF = {
   EXPERIMENTAL: {

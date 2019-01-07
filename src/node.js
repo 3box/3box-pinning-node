@@ -4,6 +4,10 @@ require('dotenv').config()
 const Pinning = require('./pinning')
 const RedisCache = require('./cache')
 const CacheService = require('./cacheService')
+const Util = require('./util')
+
+const SegmentAnalytics = require('analytics-node')
+const analytics = new SegmentAnalytics(process.env.SEGMENT_WRITE_KEY)
 
 // TODO move to to env configs
 const ADDRESS_SERVER_URL = 'https://beta.3box.io/address-server'
@@ -14,10 +18,19 @@ const REDIS_PATH = 'profilecache.h9luwi.0001.usw2.cache.amazonaws.com'
 
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 
+const util = new Util(IPFS_PATH)
+
 async function start () {
   const cache = new RedisCache({ host: REDIS_PATH }, DAYS15)
-  const pinning = new Pinning(cache, IPFS_PATH, ORBITDB_PATH)
+  const pinning = new Pinning(cache, IPFS_PATH, ORBITDB_PATH, analytics)
   const cacheService = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
+  analytics.track({
+    event: 'PinningStart',
+    anonymousId: '3box',
+    properties: {
+      rootStoreNumber: util.getTotalRootStores()
+    }
+  })
   await pinning.start()
   cacheService.start()
 }
