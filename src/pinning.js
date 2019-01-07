@@ -2,6 +2,7 @@ require('dotenv').config()
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
+const timer = require('exectimer')
 
 const PINNING_ROOM = '3box-pinning'
 const IPFS_OPTIONS = {
@@ -47,23 +48,30 @@ class Pinning {
           resolve(parsedProfile)
         }
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
+        this.analytics.track({
+          event: 'get_profile',
+          anonymousId: '3box',
+          properties: {
+            '3box_dapp_boolean': false,
+            'user': address,
+            'time': Date.now(),
+            'profile_existed': !!profileFromPubStore,
+            'success_boolean': true
+          }
+        })
       }
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
       this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
-      // record a getProfile integration
-      this.analytics.track({
-        event: 'GetProfile',
-        anonymousId: '3box',
-        properties: {
-          address: address
-        }
-      })
     })
   }
 
   async openDB (address, responseFn, onReplicatedFn) {
+    let consent = false
+    let tick = new timer.tick('openDB')
+    tick.start()
     if (!this.openDBs[address]) {
+      consent = true
       console.log('Opening db:', address)
       this.openDBs[address] = await this.orbitdb.open(address)
       this.openDBs[address].events.on('ready', () => {
@@ -84,16 +92,21 @@ class Pinning {
           }
         }
       )
-      this.analytics.track({
-        event: 'OpenDB',
-        anonymousId: '3box',
-        properties: {
-          address: address
-        }
-      })
     } else {
       responseFn(address)
     }
+    tick.stop()
+    this.analytics.track({
+      event: 'open_box',
+      anonymousId: '3box',
+      properties: {
+        '3box_dapp_boolean': false,
+        'address': address,
+        'time': Date.now(),
+        'duration': timer.timers.openDB.duration(),
+        'user_consent': consent
+      }
+    })
   }
 
   _sendHasResponse (address) {
