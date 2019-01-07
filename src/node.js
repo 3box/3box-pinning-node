@@ -28,7 +28,8 @@ async function start () {
     event: 'PinningStart',
     anonymousId: '3box',
     properties: {
-      rootStoreNumber: util.getTotalRootStores()
+      rootStoreNumber: util.getTotalRootStores(),
+      diskSize: util.getIPFSDiskUsage()
     }
   })
   await pinning.start()
