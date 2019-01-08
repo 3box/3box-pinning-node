@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 
-require('dotenv').config()
+const path = require('path')
 const Pinning = require('./pinning')
 const RedisCache = require('./cache')
 const CacheService = require('./cacheService')
 
-// TODO move to to env configs
-const ADDRESS_SERVER_URL = 'https://beta.3box.io/address-server'
-const ORBITDB_PATH = '/opt/orbitdb'
-// const IPFS_PATH = '/opt/ipfs'
-const IPFS_PATH = null
-const REDIS_PATH = 'profilecache.h9luwi.0001.usw2.cache.amazonaws.com'
+const env = process.env.NODE_ENV || 'development'
+require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
+
+const ADDRESS_SERVER_URL = process.env.ADDRESS_SERVER_URL
+const ORBITDB_PATH = process.env.ORBITDB_PATH
+const IPFS_PATH = process.env.IPFS_PATH
+const REDIS_PATH = process.env.REDIS_PATH
 
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 
