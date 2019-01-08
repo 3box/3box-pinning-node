@@ -70,9 +70,11 @@ class Pinning {
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       this.openDBs[address] = {
-        db: await this.orbitdb.open(address),
+        dbPromise: this.orbitdb.open(address),
         latestTouch: Date.now()
       }
+      this.openDBs[address].db = await this.openDBs[address].dbPromise
+      delete this.openDBs[address].dbPromise
       this.openDBs[address].db.events.on('ready', () => {
         responseFn(address)
       })
@@ -81,18 +83,21 @@ class Pinning {
         'replicate.progress',
         (odbAddress, entryHash, entry, num, max) => {
           this.openDBs[address].latestTouch = Date.now()
-          console.log('Replicating entry:', entryHash)
-          console.log('On db:', odbAddress)
-          if (num === max) {
+          //console.log('Replicating entry:', entryHash, entry, '\n', 'On db:', odbAddress)
+            console.log('numax', num, max)
+          if (num === max && odbAddress === entry.id) {
             this.openDBs[address].db.events.on('replicated', () => {
               console.log('Fully replicated db:', odbAddress)
-              this._publish('REPLICATED', address)
+              //this._publish('REPLICATED', address)
               if (onReplicatedFn) onReplicatedFn(address)
             })
           }
         }
       )
     } else {
+      if (this.openDBs[address].dbPromise) {
+        await this.openDBs[address].dbPromise
+      }
       responseFn(address)
     }
   }
@@ -100,12 +105,16 @@ class Pinning {
   _sendHasResponse (address) {
     const numEntries = this.openDBs[address].db._oplog._length
     this._publish('HAS_ENTRIES', address, numEntries)
+    console.log('HAS_ENTRIES', address.split('.').pop(), numEntries)
   }
 
   _openSubStores (address) {
     this.openDBs[address].db.iterator({ limit: -1 }).collect().map(entry => {
       const odbAddress = entry.payload.value.odbAddress
-      this.openDB(odbAddress, this._sendHasResponse.bind(this))
+      console.log('sub entry', odbAddress)
+      //if (odbAddress.split('.').pop() === 'public') {
+        this.openDB(odbAddress, this._sendHasResponse.bind(this))
+      //}
     })
   }
 
@@ -127,6 +136,7 @@ class Pinning {
     console.log(topic, data)
     if (!data.type || data.type === 'PIN_DB') {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
+      //this.openDB(data.odbAddress, () => {})//this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
     }
   }
