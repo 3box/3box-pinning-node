@@ -2,6 +2,8 @@ const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 
+const TEN_MINUTES = 10 * 60 * 1000
+const THIRTY_MINUTES = 30 * 60 * 1000
 const PINNING_ROOM = '3box-pinning'
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
@@ -27,19 +29,31 @@ class Pinning {
     this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
+    // close stores after 30 min check every 10 min
+    setInterval(this.checkAndCloseDBs.bind(this), TEN_MINUTES)
+  }
+
+  checkAndCloseDBs () {
+    Object.keys(this.openDBs).map(async key => {
+      if (Date.now() > this.openDBs[key].latestTouch + THIRTY_MINUTES) {
+        const db = this.openDBs[key].db
+        delete this.openDBs[key]
+        await db.close()
+      }
+    })
   }
 
   async getProfile (address) {
     return new Promise((resolve, reject) => {
       const pubStoreFromRoot = address => {
-        const profileEntry = this.openDBs[address]
+        const profileEntry = this.openDBs[address].db
           .iterator({ limit: -1 })
           .collect()
           .find(entry => {
             return entry.payload.value.odbAddress.split('.')[1] === 'public'
           })
         const profileFromPubStore = address => {
-          const profile = this.openDBs[address].all()
+          const profile = this.openDBs[address].db.all()
           let parsedProfile = {}
           Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
           resolve(parsedProfile)
@@ -55,18 +69,22 @@ class Pinning {
   async openDB (address, responseFn, onReplicatedFn) {
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
-      this.openDBs[address] = await this.orbitdb.open(address)
-      this.openDBs[address].events.on('ready', () => {
+      this.openDBs[address] = {
+        db: await this.orbitdb.open(address),
+        latestTouch: Date.now()
+      }
+      this.openDBs[address].db.events.on('ready', () => {
         responseFn(address)
       })
-      this.openDBs[address].load()
-      this.openDBs[address].events.on(
+      this.openDBs[address].db.load()
+      this.openDBs[address].db.events.on(
         'replicate.progress',
         (odbAddress, entryHash, entry, num, max) => {
+          this.openDBs[address].latestTouch = Date.now()
           console.log('Replicating entry:', entryHash)
           console.log('On db:', odbAddress)
           if (num === max) {
-            this.openDBs[address].events.on('replicated', () => {
+            this.openDBs[address].db.events.on('replicated', () => {
               console.log('Fully replicated db:', odbAddress)
               this._publish('REPLICATED', address)
               if (onReplicatedFn) onReplicatedFn(address)
@@ -80,12 +98,12 @@ class Pinning {
   }
 
   _sendHasResponse (address) {
-    const numEntries = this.openDBs[address]._oplog._length
+    const numEntries = this.openDBs[address].db._oplog._length
     this._publish('HAS_ENTRIES', address, numEntries)
   }
 
   _openSubStores (address) {
-    this.openDBs[address].iterator({ limit: -1 }).collect().map(entry => {
+    this.openDBs[address].db.iterator({ limit: -1 }).collect().map(entry => {
       const odbAddress = entry.payload.value.odbAddress
       this.openDB(odbAddress, this._sendHasResponse.bind(this))
     })
