@@ -11,7 +11,7 @@ jest.mock('redis', () => {
   }
 })
 
-const RedisCache = require('../cache')
+const { RedisCache } = require('../cache')
 const TTL = 12345
 
 describe('RedisCache', () => {

@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 
-require('dotenv').config()
+const argv = require('yargs').argv
+const path = require('path')
 const Pinning = require('./pinning')
-const RedisCache = require('./cache')
+const { RedisCache, NullCache } = require('./cache')
 const CacheService = require('./cacheService')
 const Util = require('./util')
 
 const SegmentAnalytics = require('analytics-node')
 const analytics = new SegmentAnalytics(process.env.SEGMENT_WRITE_KEY)
 
-// TODO move to to env configs
-const ADDRESS_SERVER_URL = 'https://beta.3box.io/address-server'
-const ORBITDB_PATH = '/opt/orbitdb'
-// const IPFS_PATH = '/opt/ipfs'
-const IPFS_PATH = null
-const REDIS_PATH = 'profilecache.h9luwi.0001.usw2.cache.amazonaws.com'
+const env = process.env.NODE_ENV || 'development'
+require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
+
+const ADDRESS_SERVER_URL = process.env.ADDRESS_SERVER_URL
+const ORBITDB_PATH = process.env.ORBITDB_PATH
+const IPFS_PATH = process.env.IPFS_PATH
+const REDIS_PATH = process.env.REDIS_PATH
 
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
+const runCacheService = argv.runCacheService !== 'false'
 
 const util = new Util(IPFS_PATH)
 
@@ -32,15 +35,15 @@ function sendInfraMetrics () {
   })
 }
 
-async function start () {
-  const cache = new RedisCache({ host: REDIS_PATH }, DAYS15)
+async function start (runCacheService) {
+  const cache = REDIS_PATH && runCacheService ? new RedisCache({ host: REDIS_PATH }, DAYS15) : new NullCache()
   const pinning = new Pinning(cache, IPFS_PATH, ORBITDB_PATH, analytics)
-  const cacheService = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
-
-  setInterval(sendInfraMetrics, 1800000)
-
   await pinning.start()
-  cacheService.start()
+  setInterval(sendInfraMetrics, 1800000)
+  if (runCacheService) {
+    const cacheService = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
+    cacheService.start()
+  }
 }
 
-start()
+start(runCacheService)

@@ -45,3 +45,11 @@ This message is sent from the pinning node when a db has been replicated.
   odbAddress: <orbit-db address>,
 }
 ```
+
+## Configuration 
+
+Configurations for both production and development environments can be found in both `.env.production` and `.env.development` respectively. The pinning service also runs a profile caching service. This can be disabled by running (i.e. you only require the pinning node) the following command instead.
+
+    $ (sudo) npm run start -- --runCacheService=false
+
+The profile caching service also uses a Redis cache to cache requests. This is disabled by default in development. And can generally be disabled by not setting the env variable `REDIS_PATH`.
