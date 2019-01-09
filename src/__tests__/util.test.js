@@ -1,4 +1,4 @@
-const Util = require('../Util')
+const Util = require('../util')
 const fs = require('fs')
 
 describe('Util', () => {
