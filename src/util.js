@@ -6,13 +6,13 @@ const getSize = require('get-folder-size')
   *  Collection of utilities to measure important KPIs
   */
 class Util {
-  constructor (ipfsDir) {
-    this.ipfsDir = ipfsDir
+  constructor (orbitDbDir) {
+    this.orbitDbDir = orbitDbDir
   }
 
   getTotalRootStores () {
     let total = 0
-    total = fs.readdirSync(this.ipfsDir, (err, files) => {
+    total = fs.readdirSync(this.orbitDbDir, (err, files) => {
       if (err) {
         throw new Error('Error getting the number of root stores', err)
       }

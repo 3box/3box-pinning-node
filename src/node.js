@@ -21,7 +21,7 @@ const REDIS_PATH = process.env.REDIS_PATH
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 const runCacheService = argv.runCacheService !== 'false'
 
-const util = new Util(IPFS_PATH)
+const util = new Util(ORBITDB_PATH)
 
 function sendInfraMetrics () {
   analytics.track({
