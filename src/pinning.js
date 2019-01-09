@@ -82,7 +82,7 @@ class Pinning {
 
   async openDB (address, responseFn, onReplicatedFn) {
     let consent = false
-    let tick = new timer.tick('openDB')
+    let tick = new timer.Tick('openDB')
     tick.start()
     if (!this.openDBs[address]) {
       consent = true
