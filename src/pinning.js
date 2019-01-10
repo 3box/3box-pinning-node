@@ -63,9 +63,7 @@ class Pinning {
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
         this.analytics.track({
           event: 'get_profile',
-          anonymousId: '3box',
           properties: {
-            '3box_dapp_boolean': false,
             'user': address,
             'time': Date.now(),
             'profile_existed': !!profileFromPubStore,
@@ -80,11 +78,9 @@ class Pinning {
   }
 
   async openDB (address, responseFn, onReplicatedFn) {
-    let consent = false
     let tick = new timer.Tick('openDB')
     tick.start()
     if (!this.openDBs[address]) {
-      consent = true
       console.log('Opening db:', address)
       this.openDBs[address] = {
         db: await this.orbitdb.open(address),
@@ -115,13 +111,11 @@ class Pinning {
     tick.stop()
     this.analytics.track({
       event: 'open_box',
-      anonymousId: '3box',
       properties: {
         '3box_dapp_boolean': false,
         'address': address,
         'time': Date.now(),
-        'duration': timer.timers.openDB.duration(),
-        'user_consent': consent
+        'duration': timer.timers.openDB.duration()
       }
     })
   }
@@ -159,7 +153,6 @@ class Pinning {
       this.cache.invalidate(data.odbAddress)
       this.analytics.track({
         event: 'PinData',
-        anonymousId: '3box',
         properties: {
           address: data.odbAddress
         }
