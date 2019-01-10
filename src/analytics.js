@@ -5,11 +5,28 @@ class Analytics {
     this.client = writeKey ? new SegmentAnalytics(writeKey) : {}
   }
 
-  track (payload) {
+  _track (data = {}) {
     if (this.client) {
-      payload.anonymousId = '3box'
-      this.client.track({ payload })
+      data.anonymousId = '3box'
+      data.properties.time = Date.now()
+      return this.client.track(data)
+    } else {
+      return false
     }
+  }
+
+  trackOpenDB (opts = {}) {
+    let data = {}
+    data.event = 'open_box'
+    data.properties = opts
+    this._track(data)
+  }
+
+  trackGetProfile (opts = {}) {
+    let data = {}
+    data.event = 'get_profile'
+    data.properties = opts
+    this._track(data)
   }
 }
 module.exports = Analytics

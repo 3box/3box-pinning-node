@@ -61,14 +61,10 @@ class Pinning {
           resolve(parsedProfile)
         }
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-        this.analytics.track({
-          event: 'get_profile',
-          properties: {
-            'user': address,
-            'time': Date.now(),
-            'profile_existed': !!profileFromPubStore,
-            'success_boolean': true
-          }
+        this.analytics.trackGetProfile({
+          'user': address,
+          'profile_existed': !!profileFromPubStore,
+          'success_boolean': true
         })
       }
       // we need to open substores on replicated, otherwise it will break
@@ -109,14 +105,10 @@ class Pinning {
       responseFn(address)
     }
     tick.stop()
-    this.analytics.track({
-      event: 'open_box',
-      properties: {
-        '3box_dapp_boolean': false,
-        'address': address,
-        'time': Date.now(),
-        'duration': timer.timers.openDB.duration()
-      }
+    this.analytics.trackOpenBox({
+      '3box_dapp_boolean': false,
+      'address': address,
+      'duration': timer.timers.openDB.duration()
     })
   }
 
@@ -151,12 +143,6 @@ class Pinning {
     if (!data.type || data.type === 'PIN_DB') {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
-      this.analytics.track({
-        event: 'PinData',
-        properties: {
-          address: data.odbAddress
-        }
-      })
     }
   }
 
