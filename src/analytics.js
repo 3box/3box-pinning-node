@@ -7,7 +7,7 @@ class Analytics {
 
   track (payload) {
     if (this.client) {
-      payload.anonymousUser = '3box'
+      payload.anonymousId = '3box'
       this.client.track({ payload })
     }
   }

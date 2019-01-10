@@ -23,7 +23,7 @@ class Util {
 
   getIPFSDiskUsage () {
     let totalSize = 0
-    getSize(this.ipfsDir, (err, size) => {
+    getSize(this.orbitDbDir, (err, size) => {
       if (err) { throw err }
       totalSize = size
     })
