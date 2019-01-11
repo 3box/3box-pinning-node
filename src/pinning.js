@@ -1,6 +1,7 @@
 const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
+const timer = require('exectimer')
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -15,11 +16,12 @@ const IPFS_OPTIONS = {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsPath, orbitdbPath) {
+  constructor (cache, ipfsPath, orbitdbPath, analytics) {
     this.cache = cache
     this.ipfsPath = ipfsPath
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
+    this.analytics = analytics
   }
 
   async start () {
@@ -59,6 +61,7 @@ class Pinning {
           resolve(parsedProfile)
         }
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
+        this.analytics.trackGetProfile(address, !!profileFromPubStore)
       }
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
@@ -67,6 +70,8 @@ class Pinning {
   }
 
   async openDB (address, responseFn, onReplicatedFn) {
+    let tick = new timer.Tick('openDB')
+    tick.start()
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       this.openDBs[address] = {
@@ -95,6 +100,8 @@ class Pinning {
     } else {
       responseFn(address)
     }
+    tick.stop()
+    this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
   }
 
   _sendHasResponse (address) {
@@ -128,6 +135,7 @@ class Pinning {
     if (!data.type || data.type === 'PIN_DB') {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
+      this.analytics.trackPinDB(data.odbAddress)
     }
   }
 
