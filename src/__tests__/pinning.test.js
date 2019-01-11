@@ -25,7 +25,8 @@ describe('Pinning', () => {
   beforeAll(async () => {
     analyticsMock = {
       trackOpenDB: jest.fn(),
-      trackGetProfile: jest.fn()
+      trackGetProfile: jest.fn(),
+      trackPinDB: jest.fn()
     }
     pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()

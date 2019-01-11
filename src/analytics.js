@@ -28,5 +28,19 @@ class Analytics {
     data.properties = { address: address, profile_existed: profileExisted }
     this._track(data)
   }
+
+  trackInfraMetrics (rootStores, diskSpace) {
+    let data = {}
+    data.event = 'infra_metrics'
+    data.properties = { total_root_stores: rootStores, ipfs_disk_size: diskSpace }
+    this._track(data)
+  }
+
+  trackPinDB (odbAddress) {
+    let data = {}
+    data.event = 'pin_db'
+    data.properties = { odb_address: odbAddress }
+    this._track(data)
+  }
 }
 module.exports = Analytics

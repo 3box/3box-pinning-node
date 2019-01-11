@@ -135,6 +135,7 @@ class Pinning {
     if (!data.type || data.type === 'PIN_DB') {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
+      this.analytics.trackPinDB(data.odbAddress)
     }
   }
 

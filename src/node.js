@@ -24,14 +24,7 @@ const analyticsClient = new Analytics(SEGMENT_WRITE_KEY)
 const util = new Util(ORBITDB_PATH)
 
 function sendInfraMetrics () {
-  analyticsClient.track({
-    event: 'infra_metrics',
-    properties: {
-      'total_root_stores': util.getTotalRootStores(),
-      'ipfs_disk_size': util.getIPFSDiskUsage(),
-      'time': Date.now()
-    }
-  })
+  analyticsClient.trackInfraMetrics(util.getTotalRootStores(), util.getIPFSDiskUsage())
 }
 
 async function start (runCacheService) {
