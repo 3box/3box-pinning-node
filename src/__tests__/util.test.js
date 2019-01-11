@@ -3,7 +3,7 @@ const fs = require('fs')
 
 describe('Util', () => {
   let u
-  let path = './test'
+  let path = './tmp/test'
 
   beforeEach(() => {
     u = new Util(path)

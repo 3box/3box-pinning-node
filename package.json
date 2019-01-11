@@ -5,7 +5,7 @@
   "main": "src/node.js",
   "scripts": {
     "lint": "./node_modules/.bin/standard --verbose src/**",
-    "test": "rm -rf ./tmp ; rm -rf ./test ; mkdir -p ./test/one ; jest --forceExit --detectOpenHandles --coverage --runInBand",
+    "test": "rm -rf ./tmp ;  mkdir -p ./tmp/test/one ; jest --forceExit --detectOpenHandles --coverage --runInBand",
     "start": "node ./src/node.js"
   },
   "repository": {
