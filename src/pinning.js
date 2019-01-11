@@ -61,11 +61,7 @@ class Pinning {
           resolve(parsedProfile)
         }
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-        this.analytics.trackGetProfile({
-          'user': address,
-          'profile_existed': !!profileFromPubStore,
-          'success_boolean': true
-        })
+        this.analytics.trackGetProfile(address, !!profileFromPubStore)
       }
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
@@ -105,11 +101,7 @@ class Pinning {
       responseFn(address)
     }
     tick.stop()
-    this.analytics.trackOpenBox({
-      '3box_dapp_boolean': false,
-      'address': address,
-      'duration': timer.timers.openDB.duration()
-    })
+    this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
   }
 
   _sendHasResponse (address) {

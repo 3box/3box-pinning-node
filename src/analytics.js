@@ -15,17 +15,17 @@ class Analytics {
     }
   }
 
-  trackOpenDB (opts = {}) {
+  trackOpenDB (address, duration) {
     let data = {}
-    data.event = 'open_box'
-    data.properties = opts
+    data.event = 'open_db'
+    data.properties = { address: address, duration: duration }
     this._track(data)
   }
 
-  trackGetProfile (opts = {}) {
+  trackGetProfile (address, profileExisted) {
     let data = {}
     data.event = 'get_profile'
-    data.properties = opts
+    data.properties = { address: address, profile_existed: profileExisted }
     this._track(data)
   }
 }
