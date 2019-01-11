@@ -6,11 +6,12 @@ const getSize = require('get-folder-size')
   *  Collection of utilities to measure important KPIs
   */
 class Util {
-  constructor (orbitDbDir) {
+  constructor (orbitDbDir, ipfsDir) {
     this.orbitDbDir = orbitDbDir
+    this.ipfsDir = ipfsDir
   }
 
-  getTotalRootStores () {
+  getTotalOrbitStores () {
     let total = 0
     total = fs.readdirSync(this.orbitDbDir, (err, files) => {
       if (err) {
@@ -22,8 +23,16 @@ class Util {
   }
 
   getIPFSDiskUsage () {
+    return this._getDiskUsage(this.ipfsDir)
+  }
+
+  getOrbitDBDiskUsage () {
+    return this._getDiskUsage(this.orbitDbDir)
+  }
+
+  _getDiskUsage (dir) {
     let totalSize = 0
-    getSize(this.orbitDbDir, (err, size) => {
+    getSize(dir, (err, size) => {
       if (err) { throw err }
       totalSize = size
     })

@@ -29,17 +29,21 @@ class Analytics {
     this._track(data)
   }
 
-  trackInfraMetrics (rootStores, diskSpace) {
-    let data = {}
-    data.event = 'infra_metrics'
-    data.properties = { total_root_stores: rootStores, ipfs_disk_size: diskSpace }
-    this._track(data)
-  }
-
   trackPinDB (odbAddress) {
     let data = {}
     data.event = 'pin_db'
     data.properties = { odb_address: odbAddress }
+    this._track(data)
+  }
+
+  trackInfraMetrics (orbitStores, orbitDiskUsage, ipfsDiskUsage) {
+    let data = {}
+    data.event = 'infra_metrics'
+    data.properties = {
+      total_orbit_stores: orbitStores,
+      orbit_disk_usage: orbitDiskUsage,
+      ipfs_disk_usage: ipfsDiskUsage
+    }
     this._track(data)
   }
 }

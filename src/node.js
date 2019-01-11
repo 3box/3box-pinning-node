@@ -21,10 +21,10 @@ const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 const runCacheService = argv.runCacheService !== 'false'
 
 const analyticsClient = new Analytics(SEGMENT_WRITE_KEY)
-const util = new Util(ORBITDB_PATH)
+const util = new Util(ORBITDB_PATH, IPFS_PATH)
 
 function sendInfraMetrics () {
-  analyticsClient.trackInfraMetrics(util.getTotalRootStores(), util.getIPFSDiskUsage())
+  analyticsClient.trackInfraMetrics(util.getTotalOrbitStores(), util.getOrbitDBDiskUsage, util.getIPFSDiskUsage())
 }
 
 async function start (runCacheService) {

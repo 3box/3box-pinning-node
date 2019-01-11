@@ -6,15 +6,15 @@ describe('Util', () => {
   let path = './tmp/test'
 
   beforeEach(() => {
-    u = new Util(path)
+    u = new Util(path, path)
   })
 
-  it('counts the number of directories', () => {
-    let count = u.getTotalRootStores()
+  it('counts the number of orbit stores', () => {
+    let count = u.getTotalOrbitStores()
     expect(count).toEqual(1)
   })
 
-  it('counts the number of directories', () => {
+  it('measure ipfs disk usage', () => {
     let size = u.getIPFSDiskUsage()
     expect(size).toEqual('0.00 Mb')
   })
