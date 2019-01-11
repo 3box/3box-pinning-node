@@ -42,27 +42,25 @@ describe('Pinning', () => {
     await testClient.createDB(true)
     const responsesPromise = new Promise((resolve, reject) => {
       let hasResponses = []
-      let replicatedResponses = []
       testClient.onMsg.mockImplementation((topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
           expect(data.numEntries).toEqual(0)
-          hasResponses.push(data.odbAddress)
-        } else if (data.type === 'REPLICATED') {
-          replicatedResponses.push(data.odbAddress)
+          if (hasResponses.indexOf(data.odbAddress) === -1) {
+            hasResponses.push(data.odbAddress)
+          }
         }
-        if (hasResponses.length === 3 && replicatedResponses.length === 3) {
+        if (hasResponses.length === 3) {
           expect(hasResponses).toContain(testClient.rootStore.address.toString())
           expect(hasResponses).toContain(testClient.pubStore.address.toString())
           expect(hasResponses).toContain(testClient.privStore.address.toString())
-          expect(replicatedResponses).toContain(testClient.rootStore.address.toString())
-          expect(replicatedResponses).toContain(testClient.pubStore.address.toString())
-          expect(replicatedResponses).toContain(testClient.privStore.address.toString())
           resolve()
         }
       })
     })
     testClient.announceDB()
     await responsesPromise
+    // wait for stores to sync
+    await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
   })
 
   it('should sync db correctly to client', async () => {

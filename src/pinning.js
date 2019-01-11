@@ -75,29 +75,22 @@ class Pinning {
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       this.openDBs[address] = {
-        db: await this.orbitdb.open(address),
+        dbPromise: this.orbitdb.open(address),
         latestTouch: Date.now()
       }
+      this.openDBs[address].db = await this.openDBs[address].dbPromise
+      delete this.openDBs[address].dbPromise
       this.openDBs[address].db.events.on('ready', () => {
         responseFn(address)
       })
       this.openDBs[address].db.load()
-      this.openDBs[address].db.events.on(
-        'replicate.progress',
-        (odbAddress, entryHash, entry, num, max) => {
-          this.openDBs[address].latestTouch = Date.now()
-          console.log('Replicating entry:', entryHash)
-          console.log('On db:', odbAddress)
-          if (num === max) {
-            this.openDBs[address].db.events.on('replicated', () => {
-              console.log('Fully replicated db:', odbAddress)
-              this._publish('REPLICATED', address)
-              if (onReplicatedFn) onReplicatedFn(address)
-            })
-          }
-        }
-      )
+      this.openDBs[address].db.events.on('replicated', () => {
+        if (onReplicatedFn) onReplicatedFn(address)
+      })
     } else {
+      if (this.openDBs[address].dbPromise) {
+        await this.openDBs[address].dbPromise
+      }
       responseFn(address)
     }
     tick.stop()
@@ -107,12 +100,15 @@ class Pinning {
   _sendHasResponse (address) {
     const numEntries = this.openDBs[address].db._oplog._length
     this._publish('HAS_ENTRIES', address, numEntries)
+    // console.log('HAS_ENTRIES', address.split('.').pop(), numEntries)
   }
 
   _openSubStores (address) {
     this.openDBs[address].db.iterator({ limit: -1 }).collect().map(entry => {
       const odbAddress = entry.payload.value.odbAddress
-      this.openDB(odbAddress, this._sendHasResponse.bind(this))
+      if (odbAddress) {
+        this.openDB(odbAddress, this._sendHasResponse.bind(this))
+      }
     })
   }
 
