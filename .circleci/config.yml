@@ -35,9 +35,9 @@ jobs:
           paths:
             - ./node_modules
 
-        - deploy:
-            name: deployment
-            command: |
+      - deploy:
+          name: deployment
+          command: |
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
               ssh -o "StrictHostKeyChecking no" ec2-user@pinning-server-develop "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
             fi
