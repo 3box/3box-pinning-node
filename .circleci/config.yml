@@ -38,9 +38,9 @@ jobs:
       - deploy:
           name: deployment
           command: |
-            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+            #if [ "${CIRCLE_BRANCH}" == "develop" ]; then
               ssh -o "StrictHostKeyChecking no" ec2-user@pinning-server-develop "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
-            fi
+            #fi
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               ssh -o "StrictHostKeyChecking no" ec2-user@pinning-server-master "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
             fi
