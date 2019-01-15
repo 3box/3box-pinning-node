@@ -16,11 +16,12 @@ const ORBITDB_PATH = process.env.ORBITDB_PATH
 const IPFS_PATH = process.env.IPFS_PATH
 const REDIS_PATH = process.env.REDIS_PATH
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
+const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE || true
 
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 const runCacheService = argv.runCacheService !== 'false'
 
-const analyticsClient = new Analytics(SEGMENT_WRITE_KEY)
+const analyticsClient = new Analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const util = new Util(ORBITDB_PATH, IPFS_PATH)
 
 function sendInfraMetrics () {
