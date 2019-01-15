@@ -1,8 +1,8 @@
 const SegmentAnalytics = require('analytics-node')
 
 class Analytics {
-  constructor (writeKey) {
-    this.client = writeKey ? new SegmentAnalytics(writeKey) : {}
+  constructor (writeKey, active = true) {
+    this.client = writeKey && active ? new SegmentAnalytics(writeKey) : null
   }
 
   _track (data = {}) {
