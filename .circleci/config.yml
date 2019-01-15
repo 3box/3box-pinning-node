@@ -39,10 +39,10 @@ jobs:
           name: deployment
           command: |
             #if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-              ssh -o "StrictHostKeyChecking no" ec2-user@pinning-server-develop "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
+              ssh -o "StrictHostKeyChecking no" $SSH_USER_DEVELOP@$SSH_HOST_DEVELOP "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
             #fi
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              ssh -o "StrictHostKeyChecking no" ec2-user@pinning-server-master "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
+              ssh -o "StrictHostKeyChecking no"  $SSH_USER_MASTER@$SSH_HOST_MASTER "cd ~/3box-pinning-server; chmod +x deploy.sh; ./deploy.sh"
             fi
 
 workflows:
