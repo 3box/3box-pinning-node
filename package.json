@@ -5,7 +5,7 @@
   "main": "src/node.js",
   "scripts": {
     "lint": "./node_modules/.bin/standard --verbose src/**",
-    "test": "rm -rf ./tmp ; jest --forceExit --detectOpenHandles --coverage --runInBand",
+    "test": "rm -rf ./tmp ;  mkdir -p ./tmp/test/one ; jest --forceExit --detectOpenHandles --coverage --runInBand",
     "start": "node ./src/node.js"
   },
   "repository": {
@@ -23,9 +23,12 @@
   },
   "homepage": "https://github.com/uport-project/3box-pinning-server#readme",
   "dependencies": {
+    "analytics-node": "^3.3.0",
     "axios": "^0.18.0",
     "dotenv": "^6.1.0",
+    "exectimer": "^2.2.1",
     "express": "^4.16.4",
+    "get-folder-size": "^2.0.0",
     "ipfs": "^0.33.1",
     "orbit-db": "^0.19.9",
     "redis": "^2.8.0",

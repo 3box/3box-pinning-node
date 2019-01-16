@@ -10,6 +10,7 @@ const IPFS_PATH_2 = './tmp/ipfs2'
 const ODB_PATH_1 = './tmp/orbitdb1'
 const ODB_PATH_2 = './tmp/orbitdb2'
 const PROFILE = { image: 'such picture', name: 'very name' }
+const PRIV_IMG = { quiet: 'wow!', shh: 'many secret' }
 const cache = {
   invalidate: jest.fn()
 }
@@ -17,10 +18,17 @@ const cache = {
 describe('Pinning', () => {
   let pinning
   let testClient
-  jest.setTimeout(10000)
+  let analyticsMock
+
+  jest.setTimeout(30000)
 
   beforeAll(async () => {
-    pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1)
+    analyticsMock = {
+      trackOpenDB: jest.fn(),
+      trackGetProfile: jest.fn(),
+      trackPinDB: jest.fn()
+    }
+    pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
@@ -34,27 +42,25 @@ describe('Pinning', () => {
     await testClient.createDB(true)
     const responsesPromise = new Promise((resolve, reject) => {
       let hasResponses = []
-      let replicatedResponses = []
       testClient.onMsg.mockImplementation((topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
           expect(data.numEntries).toEqual(0)
-          hasResponses.push(data.odbAddress)
-        } else if (data.type === 'REPLICATED') {
-          replicatedResponses.push(data.odbAddress)
+          if (hasResponses.indexOf(data.odbAddress) === -1) {
+            hasResponses.push(data.odbAddress)
+          }
         }
-        if (hasResponses.length === 3 && replicatedResponses.length === 3) {
+        if (hasResponses.length === 3) {
           expect(hasResponses).toContain(testClient.rootStore.address.toString())
           expect(hasResponses).toContain(testClient.pubStore.address.toString())
           expect(hasResponses).toContain(testClient.privStore.address.toString())
-          expect(replicatedResponses).toContain(testClient.rootStore.address.toString())
-          expect(replicatedResponses).toContain(testClient.pubStore.address.toString())
-          expect(replicatedResponses).toContain(testClient.privStore.address.toString())
           resolve()
         }
       })
     })
     testClient.announceDB()
     await responsesPromise
+    // wait for stores to sync
+    await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
   })
 
   it('should sync db correctly to client', async () => {
@@ -81,12 +87,28 @@ describe('Pinning', () => {
     await responsesPromise
     await dbSyncPromise
     expect(await testClient.getProfile()).toEqual(PROFILE)
+    expect(await testClient.getPrivImg()).toEqual(PRIV_IMG)
   })
 
-  it('should get profile correctly, when stores open', async () => {
-    const rsAddr = testClient.rootStore.address.toString()
-    const profile = await pinning.getProfile(rsAddr)
-    expect(profile).toEqual(PROFILE)
+  it('dbs should close after 30 min, but not before', async () => {
+    pinning.checkAndCloseDBs()
+    let numOpenDBs = Object.keys(pinning.openDBs).length
+    expect(numOpenDBs).toEqual(3)
+    // make 20 min pass
+    // hacky way to get around Date.now()
+    Object.keys(pinning.openDBs).map(key => {
+      pinning.openDBs[key].latestTouch -= 20 * 60 * 1000
+    })
+    pinning.checkAndCloseDBs()
+    numOpenDBs = Object.keys(pinning.openDBs).length
+    expect(numOpenDBs).toEqual(3)
+    // make additional 10 min pass
+    Object.keys(pinning.openDBs).map(key => {
+      pinning.openDBs[key].latestTouch -= 10 * 60 * 1000
+    })
+    pinning.checkAndCloseDBs()
+    numOpenDBs = Object.keys(pinning.openDBs).length
+    expect(numOpenDBs).toEqual(0)
   })
 
   it('should get profile correctly, when stores closed', async () => {
@@ -95,12 +117,18 @@ describe('Pinning', () => {
     const profile = await pinning.getProfile(rsAddr)
     expect(profile).toEqual(PROFILE)
   })
+
+  it('should get profile correctly, when stores open', async () => {
+    const rsAddr = testClient.rootStore.address.toString()
+    const profile = await pinning.getProfile(rsAddr)
+    expect(profile).toEqual(PROFILE)
+  })
 })
 
 const closeAllStores = async pinning => {
   const promises = Object.keys(pinning.openDBs).map(async key => {
-    await pinning.openDBs[key].close()
-    pinning.openDBs[key] = null
+    await pinning.openDBs[key].db.close()
+    delete pinning.openDBs[key]
   })
   await Promise.all(promises)
 }
@@ -165,6 +193,13 @@ class TestClient {
     return parsedProfile
   }
 
+  async getPrivImg () {
+    const img = this.privStore.all()
+    let parsedProfile = {}
+    Object.keys(img).map(key => { parsedProfile[key] = img[key].value })
+    return parsedProfile
+  }
+
   async reset () {
     await Promise.all([
       this.rootStore.drop(),
@@ -175,7 +210,6 @@ class TestClient {
     await this.pubsub.disconnect()
   }
 }
-
 
 const CONF = {
   EXPERIMENTAL: {
