@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-echo $CIRCLE_BRANCH
-if [[ "$CIRCLE_BRANCH" == "feat/automate-deployment" ]]; then
+cd ~/3box-pinning-server
+if [[ "$CIRCLE_BRANCH" == "develop" ]]; then
   git stash
   git checkout -f develop
   git pull origin develop
   npm i -g pm2
   npm i
-  cp .env.development.example .env.development
+  if [ ! -f .env.development ]; then
+    cp .env.development.example .env.development
+  fi
   pm2 restart node
 fi
 if [ "$CIRCLE_BRANCH" == "master" ]; then
@@ -15,6 +17,8 @@ if [ "$CIRCLE_BRANCH" == "master" ]; then
   git pull origin master
   npm i -g pm2
   npm i
-  cp .env.production.example .env.production
+  if [ ! -f .env.production ]; then
+    cp .env.production.example .env.production
+  fi
   pm2 restart node
 fi
