@@ -39,10 +39,10 @@ jobs:
           name: deployment
           command: |
             #if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-              ssh $SSH_USER_DEVELOP@$SSH_HOST_DEVELOP 'CIRCLE_BRANCH=feat/automate-deployment bash -s' < deploy.sh
+              ssh -o "StrictHostKeyChecking no" $SSH_USER_DEVELOP@$SSH_HOST_DEVELOP 'CIRCLE_BRANCH=feat/automate-deployment bash -s' < deploy.sh
             #fi
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              ssh $SSH_USER_MASTER@$SSH_HOST_MASTER 'CIRCLE_BRANCH=master bash -s' < deploy.sh
+              ssh -o "StrictHostKeyChecking no" $SSH_USER_MASTER@$SSH_HOST_MASTER 'CIRCLE_BRANCH=master bash -s' < deploy.sh
             fi
 
 workflows:
