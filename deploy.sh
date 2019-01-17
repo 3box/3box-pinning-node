@@ -4,7 +4,11 @@ if [[ "$CIRCLE_BRANCH" == "develop" ]]; then
   git stash
   git checkout -f develop
   git pull origin develop
-  npm i -g pm2
+  git reset --hard origin/develop
+  if [ (npm list -g | grep pm2 | wc -l) -eq 0]; then
+    npm i -g pm2
+    pm2 update
+  fi
   npm i
   if [ ! -f .env.development ]; then
     cp .env.development.example .env.development
@@ -15,7 +19,11 @@ if [ "$CIRCLE_BRANCH" == "master" ]; then
   git stash
   git checkout -f master
   git pull origin master
-  npm i -g pm2
+  git reset --hard origin/master
+  if [ (npm list -g | grep pm2 | wc -l) -eq 0]; then
+    npm i -g pm2
+    pm2 update
+  fi
   npm i
   if [ ! -f .env.production ]; then
     cp .env.production.example .env.production
