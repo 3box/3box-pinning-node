@@ -5,7 +5,8 @@ if [[ "$CIRCLE_BRANCH" == "develop" ]]; then
   git checkout -f develop
   git pull origin develop
   git reset --hard origin/develop
-  if [ (npm list -g | grep pm2 | wc -l) -eq 0]; then
+  PM2_INSTALLED=$(npm list -g | grep pm2 | wc -l)
+  if [ "$PM2_INSTALLED" -eq 0 ]; then
     npm i -g pm2
     pm2 update
   fi
@@ -20,7 +21,8 @@ if [ "$CIRCLE_BRANCH" == "master" ]; then
   git checkout -f master
   git pull origin master
   git reset --hard origin/master
-  if [ (npm list -g | grep pm2 | wc -l) -eq 0]; then
+  PM2_INSTALLED=$(npm list -g | grep pm2 | wc -l)
+  if [ "$PM2_INSTALLED" -eq 0 ]; then
     npm i -g pm2
     pm2 update
   fi
