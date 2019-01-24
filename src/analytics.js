@@ -42,7 +42,8 @@ class Analytics {
     data.properties = {
       total_orbit_stores: orbitStores,
       orbit_disk_usage: orbitDiskUsage,
-      ipfs_disk_usage: ipfsDiskUsage
+      ipfs_disk_usage: ipfsDiskUsage,
+      memory_usage: process.memoryUsage().rss / 1024 / 1024
     }
     this._track(data)
   }
