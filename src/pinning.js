@@ -106,7 +106,9 @@ class Pinning {
 
   _openSubStores (address) {
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
-    const uniqueEntries = entries.filter((v, i, a) => a.indexOf(v) === i)
+    const uniqueEntries = entries.filter((e1, i, a) => {
+      return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
+    })
     uniqueEntries.map(entry => {
       const odbAddress = entry.payload.value.odbAddress
       if (odbAddress) {
