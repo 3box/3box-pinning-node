@@ -14,7 +14,7 @@ if [[ "$CIRCLE_BRANCH" == "develop" ]]; then
   if [ ! -f .env.development ]; then
     cp .env.development.example .env.development
   fi
-  pm2 restart node
+  pm2 restart --max-memory-restart 1000M node
 fi
 if [ "$CIRCLE_BRANCH" == "master" ]; then
   git stash
@@ -30,5 +30,5 @@ if [ "$CIRCLE_BRANCH" == "master" ]; then
   if [ ! -f .env.production ]; then
     cp .env.production.example .env.production
   fi
-  pm2 restart node
+  pm2 restart --max-memory-restart 1000M node
 fi
