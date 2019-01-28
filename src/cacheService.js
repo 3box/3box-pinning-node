@@ -8,6 +8,10 @@ class CacheService {
     this.addressServer = addressServer
     this.app = express()
     this.app.use(express.json())
+    this.app.use(function(req, res, next) {
+      res.header("Access-Control-Allow-Origin", "*");
+      next();
+    });
     this.app.get('/profile', this.getProfile.bind(this))
     this.app.post('/profileList', this.getProfiles.bind(this))
   }
