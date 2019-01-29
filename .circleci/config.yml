@@ -35,6 +35,16 @@ jobs:
           paths:
             - ./node_modules
 
+      - deploy:
+          name: deployment
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              cat deploy.sh | ssh -o "StrictHostKeyChecking no" $SSH_USER_DEVELOP@$SSH_HOST_DEVELOP CIRCLE_BRANCH=develop 'bash -'
+            fi
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              cat deploy.sh | ssh -o "StrictHostKeyChecking no" $SSH_USER_MASTER@$SSH_HOST_MASTER CIRCLE_BRANCH=master 'bash -'
+            fi
+
 workflows:
   version: 2
   build-and-deploy:

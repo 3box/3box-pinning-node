@@ -88,10 +88,11 @@ class Pinning {
         if (onReplicatedFn) onReplicatedFn(address)
       })
     } else {
-      if (this.openDBs[address].dbPromise) {
-        await this.openDBs[address].dbPromise
+      if (!this.openDBs[address].dbPromise) {
+        // We don't need to call the responseFn if there is a promise present
+        // as it will get called anyway
+        responseFn(address)
       }
-      responseFn(address)
     }
     tick.stop()
     this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
@@ -104,7 +105,11 @@ class Pinning {
   }
 
   _openSubStores (address) {
-    this.openDBs[address].db.iterator({ limit: -1 }).collect().map(entry => {
+    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
+    const uniqueEntries = entries.filter((e1, i, a) => {
+      return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
+    })
+    uniqueEntries.map(entry => {
       const odbAddress = entry.payload.value.odbAddress
       if (odbAddress) {
         this.openDB(odbAddress, this._sendHasResponse.bind(this))
