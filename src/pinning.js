@@ -133,7 +133,7 @@ class Pinning {
 
   _onMessage (topic, data) {
     console.log(topic, data)
-    if (!data.type || data.type === 'PIN_DB') {
+    if (data.type === 'PIN_DB' && OrbitDB.isValidAddress(data.odbAddress)) {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
       this.analytics.trackPinDB(data.odbAddress)
