@@ -1,5 +1,6 @@
 const express = require('express')
 const axios = require('axios')
+const cors = require('cors')
 
 class CacheService {
   constructor (cache, pinning, addressServer) {
@@ -8,6 +9,17 @@ class CacheService {
     this.addressServer = addressServer
     this.app = express()
     this.app.use(express.json())
+    this.app.use(cors({
+      origin: '*',
+      methods: ['GET', 'POST', 'OPTIONS'],
+      allowedHeaders: [
+        'DNT', 'User-Agent', 'X-Requested-With', 'If-Modified-Since',
+        'Cache-Control', 'Content-Type', 'Range'
+      ],
+      exposedHeaders: [
+        'Content-Length', 'Content-Range'
+      ]
+    }))
     this.app.get('/profile', this.getProfile.bind(this))
     this.app.post('/profileList', this.getProfiles.bind(this))
   }
