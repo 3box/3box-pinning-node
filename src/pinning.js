@@ -16,9 +16,9 @@ const IPFS_OPTIONS = {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsPath, orbitdbPath, analytics) {
+  constructor (cache, ipfsConfig, orbitdbPath, analytics) {
     this.cache = cache
-    this.ipfsPath = ipfsPath
+    this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
@@ -146,9 +146,8 @@ class Pinning {
 
   async _initIpfs () {
     // Create IPFS instance
-    let ipfsOpts = IPFS_OPTIONS
-    if (this.ipfsPath) ipfsOpts.repo = this.ipfsPath
-    const ipfs = new IPFS(ipfsOpts)
+    const config = { ...IPFS_OPTIONS, ...this.ipfsConfig }
+    const ipfs = new IPFS(config)
     return new Promise((resolve, reject) => {
       ipfs.on('error', (e) => console.error(e))
       ipfs.on('ready', () => resolve(ipfs))
