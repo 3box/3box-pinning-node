@@ -16,8 +16,7 @@ const IPFS_OPTIONS = {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics) {
-    this.cache = cache
+  constructor (ipfsConfig, orbitdbPath, analytics) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
@@ -135,7 +134,6 @@ class Pinning {
     console.log(topic, data)
     if (data.type === 'PIN_DB' && OrbitDB.isValidAddress(data.odbAddress)) {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
-      this.cache.invalidate(data.odbAddress)
       this.analytics.trackPinDB(data.odbAddress)
     }
   }

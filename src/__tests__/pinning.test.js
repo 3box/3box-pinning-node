@@ -11,9 +11,6 @@ const ODB_PATH_1 = './tmp/orbitdb1'
 const ODB_PATH_2 = './tmp/orbitdb2'
 const PROFILE = { image: 'such picture', name: 'very name' }
 const PRIV_IMG = { quiet: 'wow!', shh: 'many secret' }
-const cache = {
-  invalidate: jest.fn()
-}
 
 describe('Pinning', () => {
   let pinning
@@ -28,7 +25,7 @@ describe('Pinning', () => {
       trackGetProfile: jest.fn(),
       trackPinDB: jest.fn()
     }
-    pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1, analyticsMock)
+    pinning = new Pinning(IPFS_PATH_1, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
