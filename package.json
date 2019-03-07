@@ -30,7 +30,8 @@
     "exectimer": "^2.2.1",
     "get-folder-size": "^2.0.0",
     "ipfs": "^0.33.1",
-    "orbit-db": "^0.19.9"
+    "orbit-db": "git://github.com/orbitdb/orbit-db.git#dddb271",
+    "orbit-db-cache-redis": "0.0.1"
   },
   "jest": {
     "testEnvironment": "node"

@@ -13,6 +13,7 @@ const ORBITDB_PATH = process.env.ORBITDB_PATH
 const IPFS_PATH = process.env.IPFS_PATH
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE || true
+const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
 
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
@@ -20,6 +21,7 @@ const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 
 const analyticsClient = new Analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const util = new Util(ORBITDB_PATH, IPFS_PATH)
+const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 
 function sendInfraMetrics () {
   analyticsClient.trackInfraMetrics(util.getTotalOrbitStores(), util.getOrbitDBDiskUsage, util.getIPFSDiskUsage())
@@ -47,7 +49,7 @@ function prepareIPFSConfig () {
 
 async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts)
   await pinning.start()
   setInterval(sendInfraMetrics, 1800000)
 }
