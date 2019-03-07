@@ -24,7 +24,9 @@
   "homepage": "https://github.com/uport-project/3box-pinning-server#readme",
   "dependencies": {
     "analytics-node": "^3.3.0",
+    "aws-sdk": "^2.414.0",
     "axios": "^0.18.0",
+    "datastore-s3": "^0.2.3",
     "dotenv": "^6.2.0",
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
