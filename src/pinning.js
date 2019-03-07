@@ -2,6 +2,7 @@ const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
+const orbitDBCache = require('orbit-db-cache-redis')
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -16,19 +17,21 @@ const IPFS_OPTIONS = {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics) {
+  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts) {
     this.cache = cache
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
+    this.orbitCacheOpts = orbitCacheOpts
   }
 
   async start () {
     this.ipfs = await this._initIpfs()
     const ipfsId = await this.ipfs.id()
     console.log(ipfsId)
-    this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath)
+    const orbitOpts = this.orbitCacheOpts ? { cache: orbitDBCache(this.orbitCacheOpts) } : { }
+    this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath, orbitOpts)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     // close stores after 30 min check every 10 min
