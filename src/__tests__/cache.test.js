@@ -3,7 +3,7 @@ jest.mock('redis', () => {
     createClient: jest.fn(() => {
       return {
         on: jest.fn(),
-        get: jest.fn((key, fn) => fn(null, '"someVal"')),
+        get: jest.fn((key, fn) => fn(null, key.includes('space') ? '["s1", "s2"]' : '"someVal"')),
         set: jest.fn(),
         del: jest.fn()
       }
@@ -38,7 +38,10 @@ describe('RedisCache', () => {
   it('should write values correctly', async () => {
     await cache.invalidate('test')
 
-    expect(cache.redis.del).toHaveBeenCalledTimes(1)
-    expect(cache.redis.del).toHaveBeenCalledWith('test')
+    expect(cache.redis.del).toHaveBeenCalledTimes(4)
+    expect(cache.redis.del).toHaveBeenNthCalledWith(1, 'space-list_test')
+    expect(cache.redis.del).toHaveBeenNthCalledWith(2, 'test')
+    expect(cache.redis.del).toHaveBeenNthCalledWith(3, 'test_s1')
+    expect(cache.redis.del).toHaveBeenNthCalledWith(4, 'test_s2')
   })
 })

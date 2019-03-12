@@ -69,6 +69,58 @@ class Pinning {
     })
   }
 
+  async listSpaces (address) {
+    return new Promise((resolve, reject) => {
+      const spacesFromRoot = address => {
+        const spaces = this.openDBs[address].db
+          .iterator({ limit: -1 })
+          .collect()
+          .reduce((list, entry) => {
+            const name = entry.payload.value.odbAddress.split('.')[2]
+            if (name) list.push(name)
+            return list
+          }, [])
+        resolve(spaces)
+      }
+      // we need to open substores on replicated, otherwise it will break
+      // the auto pinning if the user adds another store to their root store
+      this.openDB(address, spacesFromRoot, this._openSubStores.bind(this))
+      this.analytics.trackListSpaces(address)
+    })
+  }
+
+  async getSpace (address, name) {
+    return new Promise((resolve, reject) => {
+      const spaceStoreFromRoot = address => {
+        const spaceEntry = this.openDBs[address].db
+          .iterator({ limit: -1 })
+          .collect()
+          .find(entry => {
+            return entry.payload.value.odbAddress.split('.')[2] === name
+          })
+        const pubDataFromSpaceStore = address => {
+          const pubSpace = this.openDBs[address].db.all()
+          const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
+            if (key.startsWith('pub_')) {
+              obj[key.slice(4)] = pubSpace[key].value
+            }
+            return obj
+          }, {})
+          resolve(parsedSpace)
+        }
+        if (spaceEntry) {
+          this.openDB(spaceEntry.payload.value.odbAddress, pubDataFromSpaceStore)
+        } else {
+          resolve({})
+        }
+        this.analytics.trackGetSpace(address, !!pubDataFromSpaceStore)
+      }
+      // we need to open substores on replicated, otherwise it will break
+      // the auto pinning if the user adds another store to their root store
+      this.openDB(address, spaceStoreFromRoot, this._openSubStores.bind(this))
+    })
+  }
+
   async openDB (address, responseFn, onReplicatedFn) {
     let tick = new timer.Tick('openDB')
     tick.start()
@@ -133,7 +185,7 @@ class Pinning {
 
   _onMessage (topic, data) {
     console.log(topic, data)
-    if (!data.type || data.type === 'PIN_DB') {
+    if (data.type === 'PIN_DB' && OrbitDB.isValidAddress(data.odbAddress)) {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
       this.cache.invalidate(data.odbAddress)
       this.analytics.trackPinDB(data.odbAddress)

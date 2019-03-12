@@ -22,6 +22,20 @@ class Analytics {
     this._track(data)
   }
 
+  trackListSpaces (address) {
+    let data = {}
+    data.event = 'list_spaces'
+    data.properties = { address: address }
+    this._track(data)
+  }
+
+  trackGetSpace (address, name, spaceExisted) {
+    let data = {}
+    data.event = 'get_space'
+    data.properties = { address: address, name: name, profile_existed: spaceExisted }
+    this._track(data)
+  }
+
   trackGetProfile (address, profileExisted) {
     let data = {}
     data.event = 'get_profile'

@@ -10,12 +10,61 @@ class CacheService {
     this.app.use(express.json())
     this.app.get('/profile', this.getProfile.bind(this))
     this.app.post('/profileList', this.getProfiles.bind(this))
+    this.app.get('/space', this.getSpace.bind(this))
+    this.app.get('/list-spaces', this.listSpaces.bind(this))
   }
 
   start () {
     this.app.listen(8081, () => {
       console.log('Cache service running on port 8081')
     })
+  }
+
+  async listSpaces (req, res, next) {
+    const address = req.query.address.toLowerCase()
+    const request = `${this.addressServer}/odbAddress/${address}`
+    let getRes
+    try {
+      getRes = await axios.get(request)
+    } catch (e) {
+      res.status(404).send({ status: 'error', message: 'Address link not found, address does not have a 3Box or is malformed' })
+      return
+    }
+    const rootStoreAddress = getRes.data.data.rootStoreAddress
+    const cacheSpaces = await this.cache.read(`space-list_${rootStoreAddress}`)
+    let spaces
+    try {
+      spaces = cacheSpaces || await this.pinning.listSpaces(rootStoreAddress)
+    } catch (e) {
+      res.status(500).send('Error: Failed to load spaces')
+      return
+    }
+    res.json(spaces)
+    if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
+  }
+
+  async getSpace (req, res, next) {
+    const address = req.query.address.toLowerCase()
+    const spaceName = req.query.name.toLowerCase()
+    const request = `${this.addressServer}/odbAddress/${address}`
+    let getRes
+    try {
+      getRes = await axios.get(request)
+    } catch (e) {
+      res.status(404).send({ status: 'error', message: 'Address link not found, address does not have a 3Box or is malformed' })
+      return
+    }
+    const rootStoreAddress = getRes.data.data.rootStoreAddress
+    const cacheSpace = await this.cache.read(`${rootStoreAddress}_${spaceName}`)
+    let space
+    try {
+      space = cacheSpace || await this.pinning.getSpace(rootStoreAddress, spaceName)
+    } catch (e) {
+      res.status(500).send('Error: Failed to load space')
+      return
+    }
+    res.json(space)
+    if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
   }
 
   async getProfile (req, res, next) {
