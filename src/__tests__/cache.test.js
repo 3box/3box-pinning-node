@@ -38,10 +38,7 @@ describe('RedisCache', () => {
   it('should write values correctly', async () => {
     await cache.invalidate('test')
 
-    expect(cache.redis.del).toHaveBeenCalledTimes(4)
-    expect(cache.redis.del).toHaveBeenNthCalledWith(1, 'space-list_test')
-    expect(cache.redis.del).toHaveBeenNthCalledWith(2, 'test')
-    expect(cache.redis.del).toHaveBeenNthCalledWith(3, 'test_s1')
-    expect(cache.redis.del).toHaveBeenNthCalledWith(4, 'test_s2')
+    expect(cache.redis.del).toHaveBeenCalledTimes(1)
+    expect(cache.redis.del).toHaveBeenCalledWith('test')
   })
 })

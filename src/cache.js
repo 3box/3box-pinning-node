@@ -28,14 +28,7 @@ class RedisCache {
   }
 
   async invalidate (key) {
-    const spaces = await this.read(`space-list_${key}`)
-    this.redis.del(`space-list_${key}`)
     this.redis.del(key)
-    if (spaces) {
-      spaces.map(space => {
-        this.redis.del(`${key}_${space}`)
-      })
-    }
   }
 }
 
