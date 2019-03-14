@@ -121,7 +121,8 @@ class Pinning {
     })
   }
 
-  async openDB (address, responseFn, onReplicatedFn) {
+  async openDB (address, responseFn, onReplicatedFn, rootStoreAddress) {
+    this.invalidateDBCache(address, rootStoreAddress)
     let tick = new timer.Tick('openDB')
     tick.start()
     if (!this.openDBs[address]) {
@@ -138,6 +139,7 @@ class Pinning {
       this.openDBs[address].db.load()
       this.openDBs[address].db.events.on('replicated', () => {
         if (onReplicatedFn) onReplicatedFn(address)
+        this.invalidateDBCache(address, rootStoreAddress)
       })
     } else {
       if (!this.openDBs[address].dbPromise) {
@@ -148,6 +150,20 @@ class Pinning {
     }
     tick.stop()
     this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
+  }
+
+  invalidateDBCache (odbAddress, rootStoreAddress) {
+    const split = odbAddress.split('.')
+    if (split[1] === 'space') {
+      const spaceName = split[2]
+      this.cache.invalidate(`${rootStoreAddress}_${spaceName}`)
+    } else if (split[1] === 'public') {
+      // the profile is only saved under the rootStoreAddress as key
+      this.cache.invalidate(`${rootStoreAddress}`)
+    } else if (split[1] === 'root') {
+      // in this case odbAddress is the rootStoreAddress
+      this.cache.invalidate(`space-list_${odbAddress}`)
+    }
   }
 
   _sendHasResponse (address) {
@@ -164,7 +180,7 @@ class Pinning {
     uniqueEntries.map(entry => {
       const odbAddress = entry.payload.value.odbAddress
       if (odbAddress) {
-        this.openDB(odbAddress, this._sendHasResponse.bind(this))
+        this.openDB(odbAddress, this._sendHasResponse.bind(this), null, address)
       }
     })
   }
@@ -187,7 +203,6 @@ class Pinning {
     console.log(topic, data)
     if (data.type === 'PIN_DB' && OrbitDB.isValidAddress(data.odbAddress)) {
       this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
-      this.cache.invalidate(data.odbAddress)
       this.analytics.trackPinDB(data.odbAddress)
     }
   }
