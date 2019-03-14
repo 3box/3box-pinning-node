@@ -36,6 +36,22 @@ describe('Pinning', () => {
 
   beforeEach(() => {
     testClient.onMsg.mockClear()
+    cache.invalidate.mockClear()
+  })
+
+  it('should invalidate DB cache correctly', async () => {
+    const spaceDBAddr = '/orbitdb/QmManifestHash/3box.space.spaceName.keyvalue'
+    const publicDBAddr = '/orbitdb/QmManifestHash/somedata.public'
+    const rootStoreDBAddr = '/orbitdb/QmManifestHash/somedata.root'
+    pinning.invalidateDBCache(rootStoreDBAddr)
+    expect(cache.invalidate).toHaveBeenCalledWith(`space-list_${rootStoreDBAddr}`)
+    cache.invalidate.mockClear()
+    pinning.invalidateDBCache(publicDBAddr, rootStoreDBAddr)
+    expect(cache.invalidate).toHaveBeenCalledWith(rootStoreDBAddr)
+    cache.invalidate.mockClear()
+    pinning.invalidateDBCache(spaceDBAddr, rootStoreDBAddr)
+    expect(cache.invalidate).toHaveBeenCalledWith(`${rootStoreDBAddr}_spaceName`)
+    cache.invalidate.mockClear()
   })
 
   it('should sync db correctly from client', async () => {
@@ -59,8 +75,11 @@ describe('Pinning', () => {
     })
     testClient.announceDB()
     await responsesPromise
+    expect(cache.invalidate).toHaveBeenCalledTimes(4)
+    expect(cache.invalidate).toHaveBeenCalledWith(testClient.rootStore.address.toString())
     // wait for stores to sync
     await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
+    expect(cache.invalidate).toHaveBeenCalledWith('space-list_' + testClient.rootStore.address.toString())
   })
 
   it('should sync db correctly to client', async () => {
@@ -86,6 +105,8 @@ describe('Pinning', () => {
     testClient.announceDB()
     await responsesPromise
     await dbSyncPromise
+    expect(cache.invalidate).toHaveBeenCalledWith(testClient.rootStore.address.toString())
+    expect(cache.invalidate).toHaveBeenCalledWith('space-list_' + testClient.rootStore.address.toString())
     expect(await testClient.getProfile()).toEqual(PROFILE)
     expect(await testClient.getPrivImg()).toEqual(PRIV_IMG)
   })
@@ -146,7 +167,7 @@ class TestClient {
     const ipfsId = await this.ipfs.id()
     this.orbitdb = new OrbitDB(this.ipfs, ODB_PATH_2)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
-    this.rootStore = await this.orbitdb.feed('rs')
+    this.rootStore = await this.orbitdb.feed('rs.root')
     this.pubStore = await this.orbitdb.keyvalue('test.public')
     this.privStore = await this.orbitdb.keyvalue('test.private')
     await this.rootStore.add({ odbAddress: this.pubStore.address.toString() })
