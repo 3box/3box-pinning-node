@@ -45,7 +45,7 @@ class CacheService {
 
   async getSpace (req, res, next) {
     const address = req.query.address.toLowerCase()
-    const spaceName = req.query.name.toLowerCase()
+    const spaceName = req.query.name
     const request = `${this.addressServer}/odbAddress/${address}`
     let getRes
     try {
