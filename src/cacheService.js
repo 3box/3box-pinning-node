@@ -32,7 +32,10 @@ class CacheService {
     try {
       getRes = await axios.get(request)
     } catch (e) {
-      res.status(404).send({ status: 'error', message: 'Address link not found, address does not have a 3Box or is malformed' })
+      res.status(404).send({
+        status: 'error',
+        message: 'Address link not found, address does not have a 3Box or is malformed'
+      })
       return
     }
     const rootStoreAddress = getRes.data.data.rootStoreAddress
@@ -56,7 +59,10 @@ class CacheService {
     try {
       getRes = await axios.get(request)
     } catch (e) {
-      res.status(404).send({ status: 'error', message: 'Address link not found, address does not have a 3Box or is malformed' })
+      res.status(404).send({
+        status: 'error',
+        message: 'Address link not found, address does not have a 3Box or is malformed'
+      })
       return
     }
     const rootStoreAddress = getRes.data.data.rootStoreAddress
@@ -90,14 +96,26 @@ class CacheService {
   }
 
   async ethereumToRootStoreAddress (address) {
-    const normalizedAddr = address.toLowerCase()
-    const request = `${this.addressServer}/odbAddress/${normalizedAddr}`
+    const normalized = address.toLowerCase()
+    const url = `${this.addressServer}/odbAddress/${normalized}`
 
     try {
-      const r = await axios.get(request)
+      const r = await axios.get(url)
       return r.data.data.rootStoreAddress
     } catch (e) {
       throw ProfileNotFound('Address link not found, address does not have a 3Box or is malformed')
+    }
+  }
+
+  async ethereumToRootStoreAddresses (addresses) {
+    const normalized = addresses.map(x => x.toLowerCase())
+    const url = `${this.addressServer}/odbAddresses/`
+
+    try {
+      const r = await axios.post(url, { identities: normalized })
+      return r.data.data.rootStoreAddresses
+    } catch (e) {
+      throw ProfileNotFound('Addresses links not found, addressList is likely malformed')
     }
   }
 
@@ -114,6 +132,19 @@ class CacheService {
     const addr = await orbitdb.determineAddress(rootStore, 'feed', { write: [signingKey] })
 
     return addr.toString()
+  }
+
+  async didToRootStoreAddresses (dids) {
+    // Load the dids
+    const promises = dids.map((did) => this.didToRootStoreAddress(did))
+    const xs = await Promise.all(promises)
+
+    // Turn the results into a map did -> rootStoreAddress
+    const r = {}
+    dids.forEach((did, i) => {
+      r[did] = xs[i]
+    })
+    return r
   }
 
   async queryToRootStoreAddress ({ address, did }) {
@@ -155,21 +186,20 @@ class CacheService {
   }
 
   // TODO return {address: profile} or return array of [{address: profile}].
-  // Request body of form { addressList: ['address1', 'address2', ...]}
+  // Request body of form { addressList: ['address1', 'address2', ...], didList: ['did1', 'did2', ...]}
   async getProfiles (req, res, next) {
-    const body = req.body
-    if (!body.addressList) res.status(500).send('Error: AddressList not given')
-    const addressArray = body.addressList.map(val => val.toLowerCase())
-    const request = `${this.addressServer}/odbAddresses/`
-    let getRes
-    try {
-      getRes = await axios.post(request, { identities: addressArray })
-    } catch (e) {
-      res.status(404).send({ status: 'error', message: 'Addresses links not found, addressList is likely malformed' })
-      return
-    }
-    const rootStoreAddresses = getRes.data.data.rootStoreAddresses
+    const { body } = req
 
+    if (!body.addressList && !body.didList) {
+      return res.status(400).send('Error: AddressList not given')
+    }
+
+    // map addresses -> root stores
+    const addrFromEth = await this.ethereumToRootStoreAddresses(body.addressList || [])
+    const addrFromDID = await this.didToRootStoreAddresses(body.didList || [])
+    const rootStoreAddresses = { ...addrFromEth, ...addrFromDID }
+
+    // Load the data
     const profilePromiseArray = Object.keys(rootStoreAddresses)
       .filter((key) => !!rootStoreAddresses[key])
       .map(async (key) => {
