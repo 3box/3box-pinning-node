@@ -1,6 +1,7 @@
-
 const fs = require('fs')
 const getSize = require('get-folder-size')
+const Multihash = require('multihashes')
+const sha256 = require('js-sha256').sha256
 
 /**
   *  Collection of utilities to measure important KPIs
@@ -37,6 +38,19 @@ class Util {
       totalSize = size
     })
     return (totalSize / 1024 / 1024).toFixed(2) + ' Mb'
+  }
+
+  /**
+   * Compute a multi-hash that is used in the did to root store process (fingerprinting)
+   */
+  static sha256Multihash (str) {
+    const digest = Buffer.from(sha256.digest(str))
+    return Multihash.encode(digest, 'sha2-256').toString('hex')
+  }
+
+  static uncompressSECP256K1Key(key) {
+    const ec = new elliptic.ec('secp256k1')
+    return ec.keyFromPublic(signingKeyCompressed, 'hex').getPublic(false, 'hex')
   }
 }
 module.exports = Util
