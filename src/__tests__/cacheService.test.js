@@ -21,6 +21,8 @@ const cache = {
       return { name: 'testName' }
     } else if (key === 'rsa_space1'){
       return { data: 'testData' }
+    } else if (key.startsWith('3box.thread')){
+      return ['posts1', 'posts2']
     } else {
       return ['space0', 'space1']
     }
@@ -30,7 +32,8 @@ const cache = {
 const pinning = {
   getProfile: jest.fn(() => { return { name: 'testName' } }),
   getSpace: jest.fn(() => { return { data: 'testData' } }),
-  listSpaces: jest.fn(() => { return ['space1', 'space2'] })
+  listSpaces: jest.fn(() => { return ['space1', 'space2'] }),
+  getThread: jest.fn(() => { return ['posts1', 'posts2'] })
 }
 
 const ADDRESS_SERVER_URL = 'address-server'
@@ -46,7 +49,7 @@ describe('CacheService', () => {
   it('constructor works as expected', async () => {
     cs = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
     expect(cs.app.use).toHaveBeenCalledTimes(1)
-    expect(cs.app.get).toHaveBeenCalledTimes(3)
+    expect(cs.app.get).toHaveBeenCalledTimes(4)
     expect(cs.app.post).toHaveBeenCalledTimes(1)
   })
 
@@ -84,62 +87,95 @@ describe('CacheService', () => {
     expect(cs.cache.write).toHaveBeenCalledWith('rsa', { name: 'testName' })
   })
 
-  it('should get space correctly, with cache', async () => {
-    const req = { query: { address: '0x12345', name: 'space1' } }
-    const res = { json: jest.fn() }
-    await cs.getSpace(req, res)
+  describe('Spaces', () => {
+    it('should get space correctly, with cache', async () => {
+      const req = { query: { address: '0x12345', name: 'space1' } }
+      const res = { json: jest.fn() }
+      await cs.getSpace(req, res)
 
-    expect(cs.cache.read).toHaveBeenCalledTimes(1)
-    expect(cs.cache.read).toHaveBeenCalledWith('rsa_space1')
-    expect(cs.pinning.getSpace).toHaveBeenCalledTimes(0)
-    expect(res.json).toHaveBeenCalledTimes(1)
-    expect(res.json).toHaveBeenCalledWith({ data: 'testData' })
-    expect(cs.cache.write).toHaveBeenCalledTimes(0)
+      expect(cs.cache.read).toHaveBeenCalledTimes(1)
+      expect(cs.cache.read).toHaveBeenCalledWith('rsa_space1')
+      expect(cs.pinning.getSpace).toHaveBeenCalledTimes(0)
+      expect(res.json).toHaveBeenCalledTimes(1)
+      expect(res.json).toHaveBeenCalledWith({ data: 'testData' })
+      expect(cs.cache.write).toHaveBeenCalledTimes(0)
+    })
+
+    it('should get space correctly, without cache', async () => {
+      const req = { query: { address: '0x12345', name: 'space1' } }
+      const res = { json: jest.fn() }
+      cache.read.mockImplementationOnce(() => null)
+      await cs.getSpace(req, res)
+
+      expect(cs.cache.read).toHaveBeenCalledTimes(1)
+      expect(cs.cache.read).toHaveBeenCalledWith('rsa_space1')
+      expect(cs.pinning.getSpace).toHaveBeenCalledTimes(1)
+      expect(cs.pinning.getSpace).toHaveBeenCalledWith('rsa', 'space1')
+      expect(res.json).toHaveBeenCalledTimes(1)
+      expect(res.json).toHaveBeenCalledWith({ data: 'testData' })
+      expect(cs.cache.write).toHaveBeenCalledTimes(1)
+      expect(cs.cache.write).toHaveBeenCalledWith('rsa_space1', { data: 'testData' })
+    })
+
+    it('should list spaces correctly, with cache', async () => {
+      const req = { query: { address: '0x12345' } }
+      const res = { json: jest.fn() }
+      await cs.listSpaces(req, res)
+
+      expect(cs.cache.read).toHaveBeenCalledTimes(1)
+      expect(cs.cache.read).toHaveBeenCalledWith('space-list_rsa')
+      expect(cs.pinning.listSpaces).toHaveBeenCalledTimes(0)
+      expect(res.json).toHaveBeenCalledTimes(1)
+      expect(res.json).toHaveBeenCalledWith(['space0', 'space1'])
+      expect(cs.cache.write).toHaveBeenCalledTimes(0)
+    })
+
+    it('should list spaces correctly, without cache', async () => {
+      const req = { query: { address: '0x12345' } }
+      const res = { json: jest.fn() }
+      cache.read.mockImplementationOnce(() => null)
+      await cs.listSpaces(req, res)
+
+      expect(cs.cache.read).toHaveBeenCalledTimes(1)
+      expect(cs.cache.read).toHaveBeenCalledWith('space-list_rsa')
+      expect(cs.pinning.listSpaces).toHaveBeenCalledTimes(1)
+      expect(cs.pinning.listSpaces).toHaveBeenCalledWith('rsa')
+      expect(res.json).toHaveBeenCalledTimes(1)
+      expect(res.json).toHaveBeenCalledWith(['space1', 'space2'])
+      expect(cs.cache.write).toHaveBeenCalledTimes(1)
+      expect(cs.cache.write).toHaveBeenCalledWith('space-list_rsa', ['space1', 'space2'])
+    })
   })
 
-  it('should get space correctly, without cache', async () => {
-    const req = { query: { address: '0x12345', name: 'space1' } }
-    const res = { json: jest.fn() }
-    cache.read.mockImplementationOnce(() => null)
-    await cs.getSpace(req, res)
+  describe('Threads', () => {
+    it('should get thread correctly, with cache', async () => {
+      const req = { query: { space: 'space1', name: 'thread1' } }
+      const res = { json: jest.fn() }
+      await cs.getThread(req, res)
 
-    expect(cs.cache.read).toHaveBeenCalledTimes(1)
-    expect(cs.cache.read).toHaveBeenCalledWith('rsa_space1')
-    expect(cs.pinning.getSpace).toHaveBeenCalledTimes(1)
-    expect(cs.pinning.getSpace).toHaveBeenCalledWith('rsa', 'space1')
-    expect(res.json).toHaveBeenCalledTimes(1)
-    expect(res.json).toHaveBeenCalledWith({ data: 'testData' })
-    expect(cs.cache.write).toHaveBeenCalledTimes(1)
-    expect(cs.cache.write).toHaveBeenCalledWith('rsa_space1', { data: 'testData' })
-  })
+      expect(cs.cache.read).toHaveBeenCalledTimes(1)
+      expect(cs.cache.read).toHaveBeenCalledWith('3box.thread.space1.thread1')
+      expect(cs.pinning.getThread).toHaveBeenCalledTimes(0)
+      expect(res.json).toHaveBeenCalledTimes(1)
+      expect(res.json).toHaveBeenCalledWith(['posts1', 'posts2'])
+      expect(cs.cache.write).toHaveBeenCalledTimes(0)
+    })
 
-  it('should list spaces correctly, with cache', async () => {
-    const req = { query: { address: '0x12345' } }
-    const res = { json: jest.fn() }
-    await cs.listSpaces(req, res)
+    it('should get thread correctly, without cache', async () => {
+      const req = { query: { space: 'space1', name: 'thread1' } }
+      const res = { json: jest.fn() }
+      cache.read.mockImplementationOnce(() => null)
+      await cs.getThread(req, res)
 
-    expect(cs.cache.read).toHaveBeenCalledTimes(1)
-    expect(cs.cache.read).toHaveBeenCalledWith('space-list_rsa')
-    expect(cs.pinning.listSpaces).toHaveBeenCalledTimes(0)
-    expect(res.json).toHaveBeenCalledTimes(1)
-    expect(res.json).toHaveBeenCalledWith(['space0', 'space1'])
-    expect(cs.cache.write).toHaveBeenCalledTimes(0)
-  })
-
-  it('should list spaces correctly, without cache', async () => {
-    const req = { query: { address: '0x12345' } }
-    const res = { json: jest.fn() }
-    cache.read.mockImplementationOnce(() => null)
-    await cs.listSpaces(req, res)
-
-    expect(cs.cache.read).toHaveBeenCalledTimes(1)
-    expect(cs.cache.read).toHaveBeenCalledWith('space-list_rsa')
-    expect(cs.pinning.listSpaces).toHaveBeenCalledTimes(1)
-    expect(cs.pinning.listSpaces).toHaveBeenCalledWith('rsa')
-    expect(res.json).toHaveBeenCalledTimes(1)
-    expect(res.json).toHaveBeenCalledWith(['space1', 'space2'])
-    expect(cs.cache.write).toHaveBeenCalledTimes(1)
-    expect(cs.cache.write).toHaveBeenCalledWith('space-list_rsa', ['space1', 'space2'])
+      expect(cs.cache.read).toHaveBeenCalledTimes(1)
+      expect(cs.cache.read).toHaveBeenCalledWith('3box.thread.space1.thread1')
+      expect(cs.pinning.getThread).toHaveBeenCalledTimes(1)
+      expect(cs.pinning.getThread).toHaveBeenCalledWith('3box.thread.space1.thread1')
+      expect(res.json).toHaveBeenCalledTimes(1)
+      expect(res.json).toHaveBeenCalledWith(['posts1', 'posts2'])
+      expect(cs.cache.write).toHaveBeenCalledTimes(1)
+      expect(cs.cache.write).toHaveBeenCalledWith('3box.thread.space1.thread1', ['posts1', 'posts2'])
+    })
   })
 
   it.skip('should get profiles correctly, with cache', async () => {
