@@ -1,6 +1,8 @@
 const express = require('express')
 const axios = require('axios')
 
+const namesTothreadName = (spaceName, threadName) => `3box.thread.${spaceName}.${threadName}`
+
 class CacheService {
   constructor (cache, pinning, addressServer) {
     this.cache = cache
@@ -12,6 +14,7 @@ class CacheService {
     this.app.post('/profileList', this.getProfiles.bind(this))
     this.app.get('/space', this.getSpace.bind(this))
     this.app.get('/list-spaces', this.listSpaces.bind(this))
+    this.app.get('/thread', this.getThread.bind(this))
   }
 
   start () {
@@ -65,6 +68,23 @@ class CacheService {
     }
     res.json(space)
     if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
+  }
+
+  async getThread (req, res, next) {
+    const spaceName = req.query.space
+    const threadName = req.query.name
+
+    const fullName = namesTothreadName(spaceName, threadName)
+    const cachePosts = await this.cache.read(fullName)
+    let posts
+    try {
+      posts = cachePosts || await this.pinning.getThread(fullName)
+    } catch (e) {
+      res.status(500).send('Error: Failed to load posts')
+      return
+    }
+    res.json(posts)
+    if (!cachePosts) this.cache.write(fullName, posts)
   }
 
   async getProfile (req, res, next) {
