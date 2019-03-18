@@ -1,4 +1,5 @@
 const fs = require('fs')
+const elliptic = require('elliptic')
 const getSize = require('get-folder-size')
 const Multihash = require('multihashes')
 const sha256 = require('js-sha256').sha256
@@ -50,7 +51,7 @@ class Util {
 
   static uncompressSECP256K1Key(key) {
     const ec = new elliptic.ec('secp256k1')
-    return ec.keyFromPublic(signingKeyCompressed, 'hex').getPublic(false, 'hex')
+    return ec.keyFromPublic(key, 'hex').getPublic(false, 'hex')
   }
 }
 module.exports = Util

@@ -9,7 +9,7 @@ const ProfileNotFound = (message) => {
   return err
 }
 
-modules.exports = {
+module.exports = {
   InvalidInputError,
   ProfileNotFound,
 }
