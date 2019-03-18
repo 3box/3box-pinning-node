@@ -1,5 +1,7 @@
 const express = require('express')
 const axios = require('axios')
+const Util = require('./util')
+const { InvalidInputError, ProfileNotFound } = require('./errors')
 
 const namesTothreadName = (spaceName, threadName) => `3box.thread.${spaceName}.${threadName}`
 
@@ -87,27 +89,69 @@ class CacheService {
     if (!cachePosts) this.cache.write(fullName, posts)
   }
 
+  async ethereumToRootStoreAddress (address) {
+    const normalizedAddr = address.toLowerCase()
+    const request = `${this.addressServer}/odbAddress/${normalizedAddr}`
+
+    try {
+      const r = await axios.get(request)
+      return r.data.data.rootStoreAddress
+    } catch (e) {
+      throw ProfileNotFound('Address link not found, address does not have a 3Box or is malformed')
+    }
+  }
+
+  async didToRootStoreAddress (did) {
+    // TODO: did to signingKeyCompressed
+    const signingKeyCompressed = '12'
+
+    const signingKey = Util.uncompressSECP256K1Key(signingKeyCompressed)
+    const fingerprint = Util.sha256Multihash(did)
+
+    const rootStore = `${fingerprint}.root`
+
+    const orbitdb = this.pinning.orbitdb
+    const addr = await orbitdb.determineAddress(rootStore, 'feed', { write: [signingKey] })
+
+    return addr.toString()
+  }
+
+  async queryToRootStoreAddress ({ address, did }) {
+    // Check input
+    if (!address && !did) {
+      throw InvalidInputError('Either pass an `address` or `did` parameter')
+    } else if (address && did) {
+      throw InvalidInputError('Both `address` and `did` parameters where passed')
+    }
+
+    // Figure out the address
+    if (address) {
+      return this.ethereumToRootStoreAddress(address)
+    } else {
+      return this.didToRootStoreAddress(did)
+    }
+  }
+
   async getProfile (req, res, next) {
-    const address = req.query.address.toLowerCase()
-    const request = `${this.addressServer}/odbAddress/${address}`
-    let getRes
+    const { address, did } = req.query
+
     try {
-      getRes = await axios.get(request)
+      const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
+
+      // Input to corresponding profile store address
+      const cacheProfile = await this.cache.read(rootStoreAddress)
+      const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
+
+      res.json(profile)
+      if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
     } catch (e) {
-      res.status(404).send({ status: 'error', message: 'Address link not found, address does not have a 3Box or is malformed' })
-      return
+      // On error, throw the corresponding status code or a default 500.
+      if (e.statusCode) {
+        return res.status(e.statusCode).send({ status: 'error', message: e.message })
+      } else {
+        return res.status(500).send('Error: Failed to load profile')
+      }
     }
-    const rootStoreAddress = getRes.data.data.rootStoreAddress
-    const cacheProfile = await this.cache.read(rootStoreAddress)
-    let profile
-    try {
-      profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
-    } catch (e) {
-      res.status(500).send('Error: Failed to load profile')
-      return
-    }
-    res.json(profile)
-    if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
   }
 
   // TODO return {address: profile} or return array of [{address: profile}].
