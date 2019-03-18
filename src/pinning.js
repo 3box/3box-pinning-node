@@ -121,6 +121,25 @@ class Pinning {
     })
   }
 
+  async getThread (name) {
+    const address = (await this.orbitdb.determineAddress(name, 'eventlog', { write: ['*'] }, true)).toString()
+    return new Promise((resolve, reject) => {
+      const getThreadData = address => {
+        const posts = this.openDBs[address].db
+          .iterator({ limit: -1 })
+          .collect()
+          .map(entry => {
+            let post = entry.payload.value
+            post.postId = entry.hash
+            return post
+          })
+        resolve(posts)
+      }
+      this.openDB(address, getThreadData)
+      this.analytics.trackGetThread(address)
+    })
+  }
+
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress) {
     this.invalidateDBCache(address, rootStoreAddress)
     let tick = new timer.Tick('openDB')
@@ -163,6 +182,9 @@ class Pinning {
     } else if (split[1] === 'root') {
       // in this case odbAddress is the rootStoreAddress
       this.cache.invalidate(`space-list_${odbAddress}`)
+    } else if (split[1] === 'thread') {
+      // thread cache is stored with the name of the DB
+      this.cache.invalidate(odbAddress.split('/')[3])
     }
   }
 
@@ -201,9 +223,13 @@ class Pinning {
 
   _onMessage (topic, data) {
     console.log(topic, data)
-    if (data.type === 'PIN_DB' && OrbitDB.isValidAddress(data.odbAddress)) {
-      this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
-      this.analytics.trackPinDB(data.odbAddress)
+    if (OrbitDB.isValidAddress(data.odbAddress)) {
+      if (data.type === 'PIN_DB') {
+        this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
+        this.analytics.trackPinDB(data.odbAddress)
+      } else if (data.type === 'SYNC_DB' && data.thread) {
+        this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
+      }
     }
   }
 
