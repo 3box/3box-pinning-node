@@ -26,7 +26,8 @@ describe('Pinning', () => {
     analyticsMock = {
       trackOpenDB: jest.fn(),
       trackGetProfile: jest.fn(),
-      trackPinDB: jest.fn()
+      trackPinDB: jest.fn(),
+      trackGetThread: jest.fn()
     }
     pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
@@ -144,6 +145,54 @@ describe('Pinning', () => {
     const profile = await pinning.getProfile(rsAddr)
     expect(profile).toEqual(PROFILE)
   })
+
+  describe('Threads', () => {
+    it('should pin thread correctly from client', async () => {
+      await testClient.createThread(true)
+      const responsesPromise = new Promise((resolve, reject) => {
+        testClient.onMsg.mockImplementation((topic, data) => {
+          if (data.type === 'HAS_ENTRIES') {
+            expect(data.numEntries).toEqual(0)
+            resolve()
+          }
+        })
+      })
+      testClient.announceThread()
+      await responsesPromise
+      expect(cache.invalidate).toHaveBeenCalledTimes(1)
+      expect(cache.invalidate).toHaveBeenCalledWith('3box.thread.myspace.coolthread')
+      // wait for thread to sync
+      await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
+    })
+
+    it('should get tread post correctly', async () => {
+      const posts = await pinning.getThread('3box.thread.myspace.coolthread')
+      expect(posts[0].message).toEqual('a great post')
+      expect(posts[1].message).toEqual('another great post')
+    })
+
+    it('should sync pinned data to client', async () => {
+      await closeAllStores(pinning)
+      await testClient.createThread(false)
+      const responsesPromise = new Promise((resolve, reject) => {
+        testClient.onMsg.mockImplementation((topic, data) => {
+          if (data.type === 'HAS_ENTRIES') {
+            expect(data.numEntries).toEqual(2)
+            resolve()
+          }
+        })
+      })
+      const dbSyncPromise = testClient.syncDB(true)
+      testClient.announceThread()
+      await responsesPromise
+      await dbSyncPromise
+      expect(cache.invalidate).toHaveBeenCalledTimes(1)
+      expect(cache.invalidate).toHaveBeenCalledWith('3box.thread.myspace.coolthread')
+      let posts = await testClient.getThreadPosts()
+      expect(posts[0].message).toEqual('a great post')
+      expect(posts[1].message).toEqual('another great post')
+    })
+  })
 })
 
 const closeAllStores = async pinning => {
@@ -187,7 +236,7 @@ class TestClient {
     })
   }
 
-  async syncDB (rsAddr) {
+  async syncDB (thread) {
     const syncStore = async store => {
       return new Promise((resolve, reject) => {
         store.events.on('replicate.progress',
@@ -201,10 +250,42 @@ class TestClient {
         )
       })
     }
-    await Promise.all([
-      syncStore(this.pubStore),
-      syncStore(this.privStore)
-    ])
+    if (thread) {
+      await syncStore(this.thread)
+    } else {
+      await Promise.all([
+        syncStore(this.pubStore),
+        syncStore(this.privStore)
+      ])
+    }
+  }
+
+  async createThread (withData) {
+    const tName = '3box.thread.myspace.coolthread'
+    this.thread = await this.orbitdb.log(tName, { write: ['*'] })
+    if (withData) {
+      await this.thread.add({ message: 'a great post' })
+      await this.thread.add({ message: 'another great post' })
+    }
+  }
+
+  async dropThread () {
+    await this.thread.drop()
+  }
+
+  announceThread () {
+    const address = this.thread.address.toString()
+    this.pubsub.publish(PINNING_ROOM, { type: 'SYNC_DB', odbAddress: address, thread: true })
+  }
+
+  async getThreadPosts () {
+    return this.thread
+      .iterator({ limit: -1 })
+      .collect().map(entry => {
+        let post = entry.payload.value
+        post.postId = entry.hash
+        return post
+      })
   }
 
   async getProfile () {

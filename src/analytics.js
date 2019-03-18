@@ -29,6 +29,13 @@ class Analytics {
     this._track(data)
   }
 
+  trackGetThread (address) {
+    let data = {}
+    data.event = 'get_thread'
+    data.properties = { address: address }
+    this._track(data)
+  }
+
   trackGetSpace (address, name, spaceExisted) {
     let data = {}
     data.event = 'get_space'
