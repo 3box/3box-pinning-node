@@ -26,29 +26,24 @@ class CacheService {
   }
 
   async listSpaces (req, res, next) {
-    const address = req.query.address.toLowerCase()
-    const request = `${this.addressServer}/odbAddress/${address}`
-    let getRes
+    const { address, did } = req.query
+
     try {
-      getRes = await axios.get(request)
+      const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
+      const cacheSpaces = await this.cache.read(`space-list_${rootStoreAddress}`)
+      const spaces = cacheSpaces || await this.pinning.listSpaces(rootStoreAddress)
+
+      res.json(spaces)
+      if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
+
     } catch (e) {
-      res.status(404).send({
-        status: 'error',
-        message: 'Address link not found, address does not have a 3Box or is malformed'
-      })
-      return
+      // On error, throw the corresponding status code or a default 500.
+      if (e.statusCode) {
+        return res.status(e.statusCode).send({ status: 'error', message: e.message })
+      } else {
+        return res.status(500).send('Error: Failed to load spaces')
+      }
     }
-    const rootStoreAddress = getRes.data.data.rootStoreAddress
-    const cacheSpaces = await this.cache.read(`space-list_${rootStoreAddress}`)
-    let spaces
-    try {
-      spaces = cacheSpaces || await this.pinning.listSpaces(rootStoreAddress)
-    } catch (e) {
-      res.status(500).send('Error: Failed to load spaces')
-      return
-    }
-    res.json(spaces)
-    if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
   }
 
   async getSpace (req, res, next) {
