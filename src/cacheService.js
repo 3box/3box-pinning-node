@@ -35,7 +35,6 @@ class CacheService {
 
       res.json(spaces)
       if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
-
     } catch (e) {
       return errorToResponse(res, e, 'Error: Failed to load spaces')
     }
@@ -52,7 +51,6 @@ class CacheService {
 
       res.json(space)
       if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
-
     } catch (e) {
       return errorToResponse(res, e, 'Error: Failed to load space')
     }
