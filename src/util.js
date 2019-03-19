@@ -76,6 +76,20 @@ class Util {
     const data = JSON.parse(content.toString())
     return data.signingKey
   }
+
+  static async didToRootStoreAddress (did, { ipfs, orbitdb }) {
+    const ipfsManifest = Util.didExtractIPFSAddress(did)
+    const signingKeyCompressed = await Util.didExtractSigningKey(ipfsManifest, ipfs)
+
+    const signingKey = Util.uncompressSECP256K1Key(signingKeyCompressed)
+    const fingerprint = Util.sha256Multihash(did)
+
+    const rootStore = `${fingerprint}.root`
+
+    const addr = await orbitdb.determineAddress(rootStore, 'feed', { write: [signingKey] })
+
+    return addr.toString()
+  }
 }
 
 module.exports = Util
