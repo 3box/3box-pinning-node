@@ -5,11 +5,11 @@ const Multihash = require('multihashes')
 const sha256 = require('js-sha256').sha256
 const { InvalidDIDFormat } = require('./errors')
 
-const RE_DID_MUPORT = /^did:muport:(\s+)$/
+const RE_DID_MUPORT = /^did:muport:(\w+)$/
 
 /**
-  *  Collection of utilities to measure important KPIs
-  */
+ *  Collection of utilities to measure important KPIs
+ */
 class Util {
   constructor (orbitDbDir, ipfsDir) {
     this.orbitDbDir = orbitDbDir
@@ -52,13 +52,16 @@ class Util {
     return Multihash.encode(digest, 'sha2-256').toString('hex')
   }
 
-  static uncompressSECP256K1Key(key) {
+  static uncompressSECP256K1Key (key) {
     const ec = new elliptic.ec('secp256k1')
     return ec.keyFromPublic(key, 'hex').getPublic(false, 'hex')
   }
 
+  static didExtractIPFSAddress (did) {
+    if (!did) {
+      throw InvalidDIDFormat('null')
+    }
 
-  static didExtractIPFSAddress(did) {
     const match = did.match(RE_DID_MUPORT)
 
     if (!match) {
@@ -68,10 +71,11 @@ class Util {
     return match[1]
   }
 
-  static async didExtractSigningKey(manifestIPFSAddr, ipfs) {
-    const content = await ipfs.get(manifestIPFSAddr)
+  static async didExtractSigningKey (manifestIPFSAddr, ipfs) {
+    const content = await ipfs.files.cat(manifestIPFSAddr)
     const data = JSON.parse(content.toString())
     return data.signingKey
   }
 }
+
 module.exports = Util
