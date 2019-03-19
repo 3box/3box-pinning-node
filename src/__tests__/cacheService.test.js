@@ -1,10 +1,12 @@
 jest.mock('express', () => {
   const express = function () {
     return {
-        use: jest.fn(), get: jest.fn(),
-        post: jest.fn(), listen: jest.fn(),
-      }
+      use: jest.fn(),
+      get: jest.fn(),
+      post: jest.fn(),
+      listen: jest.fn()
     }
+  }
   express.json = jest.fn()
   return express
 })
@@ -19,7 +21,7 @@ const cache = {
   read: jest.fn(key => {
     if (key === 'rsa') {
       return { name: 'testName' }
-    } else if (key === 'rsa_space1'){
+    } else if (key === 'rsa_space1') {
       return { data: 'testData' }
     } else if (key.startsWith('3box.thread')){
       return ['posts1', 'posts2']

@@ -53,7 +53,7 @@ class Util {
   }
 
   static uncompressSECP256K1Key (key) {
-    const ec = new elliptic.ec('secp256k1')
+    const ec = new elliptic.ec('secp256k1') // eslint-disable-line new-cap
     return ec.keyFromPublic(key, 'hex').getPublic(false, 'hex')
   }
 
