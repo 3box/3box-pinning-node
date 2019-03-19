@@ -37,12 +37,7 @@ class CacheService {
       if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
 
     } catch (e) {
-      // On error, throw the corresponding status code or a default 500.
-      if (e.statusCode) {
-        return res.status(e.statusCode).send({ status: 'error', message: e.message })
-      } else {
-        return res.status(500).send('Error: Failed to load spaces')
-      }
+      return errorToResponse(res, e, 'Error: Failed to load spaces')
     }
   }
 
@@ -59,12 +54,7 @@ class CacheService {
       if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
 
     } catch (e) {
-      // On error, throw the corresponding status code or a default 500.
-      if (e.statusCode) {
-        return res.status(e.statusCode).send({ status: 'error', message: e.message })
-      } else {
-        return res.status(500).send('Error: Failed to load space')
-      }
+      return errorToResponse(res, e, 'Error: Failed to load space')
     }
   }
 
@@ -167,12 +157,7 @@ class CacheService {
       res.json(profile)
       if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
     } catch (e) {
-      // On error, throw the corresponding status code or a default 500.
-      if (e.statusCode) {
-        return res.status(e.statusCode).send({ status: 'error', message: e.message })
-      } else {
-        return res.status(500).send('Error: Failed to load profile')
-      }
+      return errorToResponse(res, e, 'Error: Failed to load profile')
     }
   }
 
@@ -208,6 +193,17 @@ class CacheService {
     }, {})
 
     res.json(parsed)
+  }
+}
+
+/**
+ * On error, return a response with the corresponding http status code, defaults to a 500.
+ */
+function errorToResponse (response, error, defaultMesssage) {
+  if (error.statusCode) {
+    return response.status(error.statusCode).send({ status: 'error', message: error.message })
+  } else {
+    return response.status(500).send(defaultMesssage)
   }
 }
 
