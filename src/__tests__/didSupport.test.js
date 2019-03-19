@@ -52,8 +52,8 @@ describe('basic low level functions are working', () => {
 
 describe('test with network', () => {
   jest.setTimeout(30000)
-  let ipfs = undefined
-  let orbitdb = undefined
+  let ipfs
+  let orbitdb
 
   beforeAll(async () => {
     ipfs = await makeIPFS(IPFS_CONF)
