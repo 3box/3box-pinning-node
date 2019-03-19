@@ -1,6 +1,6 @@
-const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
+const { makeIPFS } = require('./tools')
 
 const Pinning = require('../pinning')
 
@@ -331,9 +331,5 @@ const CONF = {
 }
 
 const initIPFS = async () => {
-  return new Promise((resolve, reject) => {
-    let ipfs = new IPFS(CONF)
-    ipfs.on('error', reject)
-    ipfs.on('ready', () => resolve(ipfs))
-  })
+  return makeIPFS(CONF)
 }
