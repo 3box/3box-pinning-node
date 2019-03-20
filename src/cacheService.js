@@ -86,6 +86,10 @@ class CacheService {
   }
 
   async ethereumToRootStoreAddresses (addresses) {
+    if (!addresses || addresses.length === 0) {
+      return {}
+    }
+
     const normalized = addresses.map(x => x.toLowerCase())
     const url = `${this.addressServer}/odbAddresses/`
 
@@ -102,6 +106,10 @@ class CacheService {
   }
 
   async didToRootStoreAddresses (dids) {
+    if (!dids || dids.length === 0) {
+      return {}
+    }
+
     // Load the dids
     const promises = dids.map((did) => this.didToRootStoreAddress(did))
     const xs = await Promise.all(promises)
