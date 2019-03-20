@@ -132,9 +132,9 @@ class CacheService {
 
     // Figure out the address
     if (address) {
-      return this.ethereumToRootStoreAddress(address)
+      return this.ethereumToRootStoreAddress(decodeURIComponent(address))
     } else {
-      return this.didToRootStoreAddress(did)
+      return this.didToRootStoreAddress(decodeURIComponent(did))
     }
   }
 
