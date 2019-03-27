@@ -6,7 +6,6 @@ const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const { RedisCache, NullCache } = require('./cache')
 const CacheService = require('./cacheService')
-const Util = require('./util')
 const Analytics = require('./analytics')
 
 const env = process.env.NODE_ENV || 'development'
@@ -28,11 +27,10 @@ const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 const runCacheService = argv.runCacheService !== 'false'
 
 const analyticsClient = new Analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
-const util = new Util(ORBITDB_PATH, IPFS_PATH)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 
 function sendInfraMetrics () {
-  analyticsClient.trackInfraMetrics(util.getTotalOrbitStores(), util.getOrbitDBDiskUsage, util.getIPFSDiskUsage())
+  analyticsClient.trackInfraMetrics()
 }
 
 function prepareIPFSConfig () {

@@ -59,7 +59,7 @@ describe('CacheService', () => {
 
   it('constructor works as expected', async () => {
     cs = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
-    expect(cs.app.use).toHaveBeenCalledTimes(1)
+    expect(cs.app.use).toHaveBeenCalledTimes(2)
     expect(cs.app.get).toHaveBeenCalledTimes(4)
     expect(cs.app.post).toHaveBeenCalledTimes(1)
   })
