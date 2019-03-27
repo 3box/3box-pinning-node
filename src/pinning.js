@@ -17,13 +17,14 @@ const IPFS_OPTIONS = {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts) {
+  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly) {
     this.cache = cache
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
     this.orbitCacheOpts = orbitCacheOpts
+    this.runCacheServiceOnly = runCacheServiceOnly
   }
 
   async start () {
@@ -41,11 +42,18 @@ class Pinning {
   checkAndCloseDBs () {
     Object.keys(this.openDBs).map(async key => {
       if (Date.now() > this.openDBs[key].latestTouch + THIRTY_MINUTES) {
-        const db = this.openDBs[key].db
-        delete this.openDBs[key]
-        await db.close()
+        await this.dbClose(key)
       }
     })
+  }
+
+  async dbClose (address) {
+    const entry = this.openDBs[address]
+    if (entry) {
+      const db = entry.db
+      delete this.openDBs[address]
+      await db.close()
+    }
   }
 
   async getProfile (address) {
@@ -57,11 +65,16 @@ class Pinning {
           .find(entry => {
             return entry.payload.value.odbAddress.split('.')[1] === 'public'
           })
+        const rootStoreAddress = address
         const profileFromPubStore = address => {
           const profile = this.openDBs[address].db.all()
           let parsedProfile = {}
           Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
           resolve(parsedProfile)
+          if (this.runCacheServiceOnly) {
+            this.dbClose(address)
+            this.dbClose(rootStoreAddress)
+          }
         }
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
         this.analytics.trackGetProfile(address, !!profileFromPubStore)
@@ -84,6 +97,9 @@ class Pinning {
             return list
           }, [])
         resolve(spaces)
+        if (this.runCacheServiceOnly) {
+          this.dbClose(address)
+        }
       }
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
@@ -101,6 +117,7 @@ class Pinning {
           .find(entry => {
             return entry.payload.value.odbAddress.split('.')[2] === name
           })
+        const rootStoreAddress = address
         const pubDataFromSpaceStore = address => {
           const pubSpace = this.openDBs[address].db.all()
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
@@ -110,11 +127,18 @@ class Pinning {
             return obj
           }, {})
           resolve(parsedSpace)
+          if (this.runCacheServiceOnly) {
+            this.dbClose(address)
+            this.dbClose(rootStoreAddress)
+          }
         }
         if (spaceEntry) {
           this.openDB(spaceEntry.payload.value.odbAddress, pubDataFromSpaceStore)
         } else {
           resolve({})
+          if (this.runCacheServiceOnly) {
+            this.dbClose(rootStoreAddress)
+          }
         }
         this.analytics.trackGetSpace(address, !!pubDataFromSpaceStore)
       }
@@ -137,6 +161,9 @@ class Pinning {
             return post
           })
         resolve(posts)
+        if (this.runCacheServiceOnly) {
+          this.dbClose(address)
+        }
       }
       this.openDB(address, getThreadData)
       this.analytics.trackGetThread(address)
