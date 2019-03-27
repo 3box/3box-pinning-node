@@ -1,5 +1,5 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/3boxdb.svg?style=for-the-badge&label=Twitter)](https://twitter.com/3boxdb)
-[![Discord](https://img.shields.io/discord/484729862368526356.svg?style=for-the-badge)](https://discordapp.com/invite/Z3f3Cxy) [![Greenkeeper badge](https://badges.greenkeeper.io/3box/3box-pinning-server.svg)](https://greenkeeper.io/)
+[![Discord](https://img.shields.io/discord/484729862368526356.svg?style=for-the-badge)](https://discordapp.com/invite/Z3f3Cxy) [![Greenkeeper badge](https://badges.greenkeeper.io/3box/3box-pinning-node.svg)](https://greenkeeper.io/)
 
 # 3Box pinning node
 
@@ -9,11 +9,11 @@ The pinning node is an ipfs and orbit-db node that persists the data of 3box use
 
 ```bash
 # Install via npm
-(sudo) npm install 3box-pinning-server --global
+(sudo) npm install 3box-pinning-node --global
 # Install via yarn
-yarn global add 3box-pinning-server
-# Run server
-(sudo) 3box-pinning-server
+yarn global add 3box-pinning-node
+# Run node
+(sudo) 3box-pinning-node
 ```
 
 ## Pubsub messages
