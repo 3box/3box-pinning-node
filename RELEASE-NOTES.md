@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.2.0 - 2019-03-28
+* Feature: Pinning for threads
+* Feature: Query by DID in getProfile and getSpace
+
 ## v1.1.1 - 2019-03-15
 * More granular invalidation of cache
 * Fix bug where space names where normalized when they shouldn't be
