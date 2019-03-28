@@ -38,7 +38,7 @@ function sendInfraMetrics () {
 
 function prepareIPFSConfig () {
   if (AWS_BUCKET_NAME) {
-    if (!IPFS_PATH || !AWS_BUCKET_NAME ) {
+    if (!IPFS_PATH || !AWS_BUCKET_NAME) {
       throw new Error('Invalid IPFS + s3 configuration')
     }
 

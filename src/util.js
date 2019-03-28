@@ -8,8 +8,6 @@ const registerMuportResolver = require('muport-did-resolver')
  *  Collection of utilities to measure important KPIs
  */
 class Util {
-  constructor () { }
-
   /**
    * Compute a multi-hash that is used in the did to root store process (fingerprinting)
    */
