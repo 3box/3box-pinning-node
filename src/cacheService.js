@@ -138,6 +138,30 @@ class CacheService {
     }
   }
 
+  /**
+   * Process back the profile into a form that depends whether the user queried
+   * for metadata or not.
+   *
+   * Returns either the profile
+   * - WITH metadata: `{name: {timestamp: 123123123123, value: "Dvorak"}, ...}`
+   * - WITHOUT metadata: `{name: "Dvorak", ...}`
+   */
+  _mungeProfile (profile, metadata) {
+    if (metadata) {
+      // For now we return everything,
+      // later we might filter the metadata (metadata="value,timestamp" for example)
+      return profile
+    } else {
+      // process back the profile into a for without metadata
+      const r = {}
+      Object.entries(profile)
+        .forEach(([k, v]) => {
+          r[k] = v.value
+        })
+      return r
+    }
+  }
+
   async getProfile (req, res, next) {
     const { address, did, metadata } = req.query
 
@@ -148,12 +172,7 @@ class CacheService {
       const cacheProfile = await this.cache.read(rootStoreAddress)
       const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
 
-      // For now we accept any metadata input
-      if (!metadata) {
-        delete profile.__metadata
-      }
-
-      res.json(profile)
+      res.json(this._mungeProfile(profile, metadata))
 
       if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
     } catch (e) {
@@ -165,15 +184,15 @@ class CacheService {
   // Request body of form { addressList: ['address1', 'address2', ...], didList: ['did1', 'did2', ...]}
   async getProfiles (req, res, next) {
     const { body } = req
-    const keepMetadata = !!body.metadata
+    const { metadata, addressList, didList } = body
 
-    if (!body.addressList && !body.didList) {
+    if (!addressList && !didList) {
       return res.status(400).send('Error: AddressList not given')
     }
 
     // map addresses -> root stores
-    const addrFromEth = await this.ethereumToRootStoreAddresses(body.addressList || [])
-    const addrFromDID = await this.didToRootStoreAddresses(body.didList || [])
+    const addrFromEth = await this.ethereumToRootStoreAddresses(addressList || [])
+    const addrFromDID = await this.didToRootStoreAddresses(didList || [])
     const rootStoreAddresses = { ...addrFromEth, ...addrFromDID }
 
     // Load the data
@@ -184,13 +203,9 @@ class CacheService {
         const cacheProfile = await this.cache.read(rootStoreAddress)
         const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
 
-        if (!keepMetadata) {
-          delete profile.__metadata
-        }
-
         if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
 
-        return { address: key, profile }
+        return { address: key, profile: this._mungeProfile(profile, metadata) }
       })
 
     const profiles = await Promise.all(profilePromiseArray)

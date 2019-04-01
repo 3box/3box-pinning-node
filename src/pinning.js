@@ -56,12 +56,11 @@ class Pinning {
           })
         const profileFromPubStore = address => {
           const profile = this.openDBs[address].db.all()
-          const parsedProfile = {__metadata: {}}
+          const parsedProfile = {}
 
           Object.entries(profile)
             .forEach(([k, v]) => {
-              parsedProfile[k] = v.value
-              parsedProfile.__metadata[k] = {timestamp: v.timeStamp}
+              parsedProfile[k] = { value: v.value, timestamp: v.timeStamp }
             })
 
           resolve(parsedProfile)
