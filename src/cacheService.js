@@ -139,7 +139,7 @@ class CacheService {
   }
 
   async getProfile (req, res, next) {
-    const { address, did } = req.query
+    const { address, did, metadata } = req.query
 
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
@@ -148,7 +148,13 @@ class CacheService {
       const cacheProfile = await this.cache.read(rootStoreAddress)
       const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
 
+      // For now we accept any metadata input
+      if (!metadata) {
+        delete profile.__metadata
+      }
+
       res.json(profile)
+
       if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
     } catch (e) {
       return errorToResponse(res, e, 'Error: Failed to load profile')
@@ -159,6 +165,7 @@ class CacheService {
   // Request body of form { addressList: ['address1', 'address2', ...], didList: ['did1', 'did2', ...]}
   async getProfiles (req, res, next) {
     const { body } = req
+    const keepMetadata = !!body.metadata
 
     if (!body.addressList && !body.didList) {
       return res.status(400).send('Error: AddressList not given')
@@ -176,7 +183,13 @@ class CacheService {
         const rootStoreAddress = rootStoreAddresses[key]
         const cacheProfile = await this.cache.read(rootStoreAddress)
         const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
+
+        if (!keepMetadata) {
+          delete profile.__metadata
+        }
+
         if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
+
         return { address: key, profile }
       })
 
