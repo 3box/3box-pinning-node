@@ -56,8 +56,14 @@ class Pinning {
           })
         const profileFromPubStore = address => {
           const profile = this.openDBs[address].db.all()
-          let parsedProfile = {}
-          Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
+          const parsedProfile = {__metadata: {}}
+
+          Object.entries(profile)
+            .forEach(([k, v]) => {
+              parsedProfile[k] = v.value
+              parsedProfile.__metadata[k] = {timestamp: v.timeStamp}
+            })
+
           resolve(parsedProfile)
         }
         this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
