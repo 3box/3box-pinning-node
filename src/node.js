@@ -16,7 +16,7 @@ const ORBITDB_PATH = process.env.ORBITDB_PATH
 const IPFS_PATH = process.env.IPFS_PATH
 const REDIS_PATH = process.env.REDIS_PATH
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
-const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE || true
+const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
 const CACHE_SERVICE_ONLY = process.env.CACHE_SERVICE_ONLY
 
