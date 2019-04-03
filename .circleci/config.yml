@@ -48,10 +48,10 @@ jobs:
       - aws-cli/configure
       - run:
           name: Deploy Pinning Service
-          command: aws ecs update-service --force-new-deployment --cluster tf-ecs-cluster --service tf-ecs-service
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster  --service pinning-node-service
       - run:
           name: Deploy API Service
-          command: aws ecs update-service --force-new-deployment --cluster profile-api-cluster --service profile-api-service
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster  --service profile-api-service
 
   # Need seperate clusters if we have dev and prod, depends how we want to treat dev
   deploy-prod:
