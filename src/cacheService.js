@@ -41,7 +41,7 @@ class CacheService {
   }
 
   async getSpace (req, res, next) {
-    const { address, did } = req.query
+    const { address, did, metadata } = req.query
     const spaceName = req.query.name
 
     try {
@@ -49,7 +49,7 @@ class CacheService {
       const cacheSpace = await this.cache.read(`${rootStoreAddress}_${spaceName}`)
       const space = cacheSpace || await this.pinning.getSpace(rootStoreAddress, spaceName)
 
-      res.json(space)
+      res.json(this._mungeSpace(space, metadata))
       if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
     } catch (e) {
       return errorToResponse(res, e, 'Error: Failed to load space')
@@ -160,6 +160,10 @@ class CacheService {
         })
       return r
     }
+  }
+
+  _mungeSpace(space, metadata) {
+    return this._mungeProfile(space, metadata)
   }
 
   async getProfile (req, res, next) {
