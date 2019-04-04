@@ -10,35 +10,44 @@ jest.mock('express', () => {
   express.json = jest.fn()
   return express
 })
+
 jest.mock('axios', () => {
   return {
     get: jest.fn(() => { return { data: { data: { rootStoreAddress: 'rsa' } } } }),
     post: jest.fn()
   }
 })
+
 const CacheService = require('../cacheService')
+
+const ADDRESS_SERVER_URL = 'address-server'
+
+const PROFILE_1 = { name: { value: 'testName', timestamp: 12 } }
+const SPACE_1 = { data: { value: 'testData', timestamp: 13 } }
+const SPACES_1 = ['space0', 'space1']
+const THREADS_1 = ['posts1', 'posts2']
+
 const cache = {
   read: jest.fn(key => {
     if (key === 'rsa') {
-      return { name: 'testName' }
+      return PROFILE_1
     } else if (key === 'rsa_space1') {
-      return { data: 'testData' }
-    } else if (key.startsWith('3box.thread')){
-      return ['posts1', 'posts2']
+      return SPACE_1
+    } else if (key.startsWith('3box.thread')) {
+      return THREADS_1
     } else {
-      return ['space0', 'space1']
+      return SPACES_1
     }
   }),
   write: jest.fn()
 }
-const pinning = {
-  getProfile: jest.fn(() => { return { name: 'testName' } }),
-  getSpace: jest.fn(() => { return { data: 'testData' } }),
-  listSpaces: jest.fn(() => { return ['space1', 'space2'] }),
-  getThread: jest.fn(() => { return ['posts1', 'posts2'] })
-}
 
-const ADDRESS_SERVER_URL = 'address-server'
+const pinning = {
+  getProfile: jest.fn(() => PROFILE_1),
+  getSpace: jest.fn(() => SPACE_1),
+  listSpaces: jest.fn(() => SPACES_1),
+  getThread: jest.fn(() => THREADS_1)
+}
 
 describe('CacheService', () => {
   let cs
@@ -86,7 +95,7 @@ describe('CacheService', () => {
     expect(res.json).toHaveBeenCalledTimes(1)
     expect(res.json).toHaveBeenCalledWith({ name: 'testName' })
     expect(cs.cache.write).toHaveBeenCalledTimes(1)
-    expect(cs.cache.write).toHaveBeenCalledWith('rsa', { name: 'testName' })
+    expect(cs.cache.write).toHaveBeenCalledWith('rsa', PROFILE_1)
   })
 
   describe('Spaces', () => {
@@ -116,7 +125,7 @@ describe('CacheService', () => {
       expect(res.json).toHaveBeenCalledTimes(1)
       expect(res.json).toHaveBeenCalledWith({ data: 'testData' })
       expect(cs.cache.write).toHaveBeenCalledTimes(1)
-      expect(cs.cache.write).toHaveBeenCalledWith('rsa_space1', { data: 'testData' })
+      expect(cs.cache.write).toHaveBeenCalledWith('rsa_space1', SPACE_1)
     })
 
     it('should list spaces correctly, with cache', async () => {
@@ -128,7 +137,7 @@ describe('CacheService', () => {
       expect(cs.cache.read).toHaveBeenCalledWith('space-list_rsa')
       expect(cs.pinning.listSpaces).toHaveBeenCalledTimes(0)
       expect(res.json).toHaveBeenCalledTimes(1)
-      expect(res.json).toHaveBeenCalledWith(['space0', 'space1'])
+      expect(res.json).toHaveBeenCalledWith(SPACES_1)
       expect(cs.cache.write).toHaveBeenCalledTimes(0)
     })
 
@@ -143,9 +152,9 @@ describe('CacheService', () => {
       expect(cs.pinning.listSpaces).toHaveBeenCalledTimes(1)
       expect(cs.pinning.listSpaces).toHaveBeenCalledWith('rsa')
       expect(res.json).toHaveBeenCalledTimes(1)
-      expect(res.json).toHaveBeenCalledWith(['space1', 'space2'])
+      expect(res.json).toHaveBeenCalledWith(SPACES_1)
       expect(cs.cache.write).toHaveBeenCalledTimes(1)
-      expect(cs.cache.write).toHaveBeenCalledWith('space-list_rsa', ['space1', 'space2'])
+      expect(cs.cache.write).toHaveBeenCalledWith('space-list_rsa', SPACES_1)
     })
   })
 
@@ -159,7 +168,7 @@ describe('CacheService', () => {
       expect(cs.cache.read).toHaveBeenCalledWith('3box.thread.space1.thread1')
       expect(cs.pinning.getThread).toHaveBeenCalledTimes(0)
       expect(res.json).toHaveBeenCalledTimes(1)
-      expect(res.json).toHaveBeenCalledWith(['posts1', 'posts2'])
+      expect(res.json).toHaveBeenCalledWith(THREADS_1)
       expect(cs.cache.write).toHaveBeenCalledTimes(0)
     })
 
@@ -174,9 +183,9 @@ describe('CacheService', () => {
       expect(cs.pinning.getThread).toHaveBeenCalledTimes(1)
       expect(cs.pinning.getThread).toHaveBeenCalledWith('3box.thread.space1.thread1')
       expect(res.json).toHaveBeenCalledTimes(1)
-      expect(res.json).toHaveBeenCalledWith(['posts1', 'posts2'])
+      expect(res.json).toHaveBeenCalledWith(THREADS_1)
       expect(cs.cache.write).toHaveBeenCalledTimes(1)
-      expect(cs.cache.write).toHaveBeenCalledWith('3box.thread.space1.thread1', ['posts1', 'posts2'])
+      expect(cs.cache.write).toHaveBeenCalledWith('3box.thread.space1.thread1', THREADS_1)
     })
   })
 

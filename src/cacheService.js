@@ -162,7 +162,7 @@ class CacheService {
     }
   }
 
-  _mungeSpace(space, metadata) {
+  _mungeSpace (space, metadata) {
     return this._mungeProfile(space, metadata)
   }
 
