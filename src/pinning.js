@@ -108,7 +108,7 @@ class Pinning {
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
             if (key.startsWith('pub_')) {
               const x = pubSpace[key]
-              obj[key.slice(4)] = {value: x.value, timestamp: x.timeStamp}
+              obj[key.slice(4)] = { value: x.value, timestamp: x.timeStamp }
             }
             return obj
           }, {})
