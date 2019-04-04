@@ -107,7 +107,8 @@ class Pinning {
           const pubSpace = this.openDBs[address].db.all()
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
             if (key.startsWith('pub_')) {
-              obj[key.slice(4)] = pubSpace[key].value
+              const x = pubSpace[key]
+              obj[key.slice(4)] = {value: x.value, timestamp: x.timeStamp}
             }
             return obj
           }, {})
