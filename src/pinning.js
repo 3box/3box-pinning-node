@@ -129,7 +129,7 @@ class Pinning {
   }
 
   async getThread (name) {
-    const address = (await this.orbitdb.determineAddress(name, 'eventlog', { write: ['*'] }, true)).toString()
+    const address = (await this.orbitdb._determineAddress(name, 'eventlog', { write: ['*'] }, false)).toString()
     return new Promise((resolve, reject) => {
       const getThreadData = address => {
         const posts = this.openDBs[address].db
