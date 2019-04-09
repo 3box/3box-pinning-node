@@ -48,30 +48,38 @@ class Pinning {
 
   async getProfile (address) {
     return new Promise((resolve, reject) => {
-      const pubStoreFromRoot = address => {
-        const profileEntry = this.openDBs[address].db
-          .iterator({ limit: -1 })
-          .collect()
-          .find(entry => {
-            return entry.payload.value.odbAddress.split('.')[1] === 'public'
-          })
-        const profileFromPubStore = address => {
-          const profile = this.openDBs[address].db.all()
-          const parsedProfile = {}
+      try {
+        const pubStoreFromRoot = address => {
+          try {
+            const profileEntry = this.openDBs[address].db
+              .iterator({ limit: -1 })
+              .collect()
+              .find(entry => {
+                return entry.payload.value.odbAddress.split('.')[1] === 'public'
+              })
+            const profileFromPubStore = address => {
+              const profile = this.openDBs[address].db.all()
+              const parsedProfile = {}
 
-          Object.entries(profile)
-            .forEach(([k, v]) => {
-              parsedProfile[k] = { value: v.value, timestamp: v.timeStamp }
-            })
+              Object.entries(profile)
+                .forEach(([k, v]) => {
+                  parsedProfile[k] = { value: v.value, timestamp: v.timeStamp }
+                })
 
-          resolve(parsedProfile)
+              resolve(parsedProfile)
+            }
+            this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
+            this.analytics.trackGetProfile(address, !!profileFromPubStore)
+          } catch (e) {
+            reject(e)
+          }
         }
-        this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-        this.analytics.trackGetProfile(address, !!profileFromPubStore)
+        // we need to open substores on replicated, otherwise it will break
+        // the auto pinning if the user adds another store to their root store
+        this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
+      } catch (e) {
+        reject(e)
       }
-      // we need to open substores on replicated, otherwise it will break
-      // the auto pinning if the user adds another store to their root store
-      this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
     })
   }
 
