@@ -36,7 +36,9 @@ class Pinning {
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     // close stores after 30 min check every 10 min
-    setInterval(this.checkAndCloseDBs.bind(this), TEN_MINUTES)
+    if (!this.runCacheServiceOnly) {
+      setInterval(this.checkAndCloseDBs.bind(this), TEN_MINUTES)
+    }
   }
 
   checkAndCloseDBs () {
