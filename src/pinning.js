@@ -47,7 +47,9 @@ class Pinning {
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     // close stores after 30 min check every 10 min
-    setInterval(this.checkAndCloseDBs.bind(this), TEN_MINUTES)
+    if (!this.runCacheServiceOnly) {
+      setInterval(this.checkAndCloseDBs.bind(this), TEN_MINUTES)
+    }
   }
 
   checkAndCloseDBs () {
@@ -78,6 +80,7 @@ class Pinning {
               return entry.payload.value.odbAddress.split('.')[1] === 'public'
             })
 
+          const rootStoreAddress = address
           const profileFromPubStore = rejectOnError(reject, address => {
             const profile = this.openDBs[address].db.all()
             const parsedProfile = {}
@@ -247,6 +250,7 @@ class Pinning {
   }
 
   _openSubStores (address) {
+    if (this.runCacheServiceOnly) { return }
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i

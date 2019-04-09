@@ -48,10 +48,10 @@ jobs:
       - aws-cli/configure
       - run:
           name: Deploy Pinning Service
-          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster  --service pinning-node-service
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-prod  --service pinning-node-service-prod
       - run:
           name: Deploy API Service
-          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster  --service profile-api-service
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-prod  --service profile-api-service-prod
 
   # Need seperate clusters if we have dev and prod, depends how we want to treat dev
   deploy-prod:
@@ -64,10 +64,10 @@ jobs:
       - aws-cli/configure
       - run:
           name: Deploy Pinning Service
-          command: aws ecs update-service --force-new-deployment --cluster tf-ecs-cluster --service tf-ecs-service
+          command: aws ecs update-service --force-new-deployment --cluster pinning-node-cluster-prod  --service pinning-node-service-prod
       - run:
           name: Deploy API Service
-          command: aws ecs update-service --force-new-deployment --cluster profile-api-cluster --service profile-api-service
+          command: aws ecs update-service --force-new-deployment --cluster profile-api-cluster-prod --service profile-api-service-prod
 
 workflows:
   build-deploy:
@@ -81,7 +81,7 @@ workflows:
             - test
           filters:
             branches:
-              only: feat/scaling-mvp
+              only: feat/scaling
       - aws-ecr/build_and_push_image:
           name: push-prod-image
           repo: 3box-pinning-server
@@ -96,7 +96,7 @@ workflows:
             - push-dev-image
           filters:
             branches:
-              only: feat/scaling-mvp
+              only: feat/scaling
       - deploy-prod:
           requires:
             - push-prod-image
