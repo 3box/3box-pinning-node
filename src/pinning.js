@@ -2,6 +2,7 @@ const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
+const { resolveDID } = require('./util')
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -235,6 +236,13 @@ class Pinning {
         this.analytics.trackPinDB(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
+      }
+      if (data.did) {
+        // We resolve the DID in order to pin the ipfs object
+        try {
+          resolveDID(this.ipfs, data.did)
+          // if this throws it's not a DID
+        } catch (e) {}
       }
     }
   }
