@@ -41,7 +41,7 @@ class CacheService {
   }
 
   async getSpace (req, res, next) {
-    const { address, did } = req.query
+    const { address, did, metadata } = req.query
     const spaceName = req.query.name
 
     try {
@@ -49,7 +49,7 @@ class CacheService {
       const cacheSpace = await this.cache.read(`${rootStoreAddress}_${spaceName}`)
       const space = cacheSpace || await this.pinning.getSpace(rootStoreAddress, spaceName)
 
-      res.json(space)
+      res.json(this._mungeSpace(space, metadata))
       if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
     } catch (e) {
       return errorToResponse(res, e, 'Error: Failed to load space')
@@ -138,8 +138,36 @@ class CacheService {
     }
   }
 
+  /**
+   * Process back the profile into a form that depends whether the user queried
+   * for metadata or not.
+   *
+   * Returns either the profile
+   * - WITH metadata: `{name: {timestamp: 123123123123, value: "Dvorak"}, ...}`
+   * - WITHOUT metadata: `{name: "Dvorak", ...}`
+   */
+  _mungeProfile (profile, metadata) {
+    if (metadata) {
+      // For now we return everything,
+      // later we might filter the metadata (metadata="value,timestamp" for example)
+      return profile
+    } else {
+      // process back the profile into a for without metadata
+      const r = {}
+      Object.entries(profile)
+        .forEach(([k, v]) => {
+          r[k] = v.value
+        })
+      return r
+    }
+  }
+
+  _mungeSpace (space, metadata) {
+    return this._mungeProfile(space, metadata)
+  }
+
   async getProfile (req, res, next) {
-    const { address, did } = req.query
+    const { address, did, metadata } = req.query
 
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
@@ -148,7 +176,8 @@ class CacheService {
       const cacheProfile = await this.cache.read(rootStoreAddress)
       const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
 
-      res.json(profile)
+      res.json(this._mungeProfile(profile, metadata))
+
       if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
     } catch (e) {
       return errorToResponse(res, e, 'Error: Failed to load profile')
@@ -159,14 +188,15 @@ class CacheService {
   // Request body of form { addressList: ['address1', 'address2', ...], didList: ['did1', 'did2', ...]}
   async getProfiles (req, res, next) {
     const { body } = req
+    const { metadata, addressList, didList } = body
 
-    if (!body.addressList && !body.didList) {
+    if (!addressList && !didList) {
       return res.status(400).send('Error: AddressList not given')
     }
 
     // map addresses -> root stores
-    const addrFromEth = await this.ethereumToRootStoreAddresses(body.addressList || [])
-    const addrFromDID = await this.didToRootStoreAddresses(body.didList || [])
+    const addrFromEth = await this.ethereumToRootStoreAddresses(addressList || [])
+    const addrFromDID = await this.didToRootStoreAddresses(didList || [])
     const rootStoreAddresses = { ...addrFromEth, ...addrFromDID }
 
     // Load the data
@@ -176,8 +206,10 @@ class CacheService {
         const rootStoreAddress = rootStoreAddresses[key]
         const cacheProfile = await this.cache.read(rootStoreAddress)
         const profile = cacheProfile || await this.pinning.getProfile(rootStoreAddress)
+
         if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
-        return { address: key, profile }
+
+        return { address: key, profile: this._mungeProfile(profile, metadata) }
       })
 
     const profiles = await Promise.all(profilePromiseArray)

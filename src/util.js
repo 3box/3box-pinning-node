@@ -3,9 +3,8 @@ const elliptic = require('elliptic')
 const getSize = require('get-folder-size')
 const Multihash = require('multihashes')
 const sha256 = require('js-sha256').sha256
-const { InvalidDIDFormat } = require('./errors')
-
-const RE_DID_MUPORT = /^did:muport:(\w+)$/
+const resolveDID = require('did-resolver').default
+const registerMuportResolver = require('muport-did-resolver')
 
 /**
  *  Collection of utilities to measure important KPIs
@@ -57,29 +56,19 @@ class Util {
     return ec.keyFromPublic(key, 'hex').getPublic(false, 'hex')
   }
 
-  static didExtractIPFSAddress (did) {
-    if (!did) {
-      throw InvalidDIDFormat('null')
-    }
-
-    const match = did.match(RE_DID_MUPORT)
-
-    if (!match) {
-      throw InvalidDIDFormat(did)
-    }
-
-    return match[1]
+  static async didExtractSigningKey (ipfs, did) {
+    const doc = await Util.resolveDID(ipfs, did)
+    const signingKey = doc.publicKey.find(key => key.id.includes('#signingKey')).publicKeyHex
+    return signingKey
   }
 
-  static async didExtractSigningKey (manifestIPFSAddr, ipfs) {
-    const content = await ipfs.files.cat(manifestIPFSAddr)
-    const data = JSON.parse(content.toString())
-    return data.signingKey
+  static async resolveDID (ipfs, did) {
+    registerMuportResolver(ipfs)
+    return resolveDID(did)
   }
 
   static async didToRootStoreAddress (did, { ipfs, orbitdb }) {
-    const ipfsManifest = Util.didExtractIPFSAddress(did)
-    const signingKeyCompressed = await Util.didExtractSigningKey(ipfsManifest, ipfs)
+    const signingKeyCompressed = await Util.didExtractSigningKey(ipfs, did)
 
     const signingKey = Util.uncompressSECP256K1Key(signingKeyCompressed)
     const fingerprint = Util.sha256Multihash(did)

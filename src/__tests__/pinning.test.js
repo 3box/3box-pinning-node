@@ -9,8 +9,29 @@ const IPFS_PATH_1 = './tmp/ipfs1'
 const IPFS_PATH_2 = './tmp/ipfs2'
 const ODB_PATH_1 = './tmp/orbitdb1'
 const ODB_PATH_2 = './tmp/orbitdb2'
-const PROFILE = { image: 'such picture', name: 'very name' }
-const PRIV_IMG = { quiet: 'wow!', shh: 'many secret' }
+
+// Data to be pushed to the store
+const PUBLIC_NAME = { timeStamp: 12, value: 'very name' }
+const PUBLIC_IMAGE = { timeStamp: 13, value: 'such picture' }
+const PRIVATE_SHH = { timeStamp: 14, value: 'many secret' }
+const PRIVATE_QUIET = { timeStamp: 15, value: 'wow!' }
+
+// Date we are representing (note the difference for time_S_tamp)
+const PROFILE = {
+  name: { timestamp: 12, value: 'very name' },
+  image: { timestamp: 13, value: 'such picture' }
+}
+
+const PROFILE_ONLY_VALUES = {
+  name: PUBLIC_NAME.value,
+  image: PUBLIC_IMAGE.value
+}
+
+const PRIV_IMG_ONLY_VALUES = {
+  quiet: PRIVATE_QUIET.value,
+  shh: PRIVATE_SHH.value
+}
+
 const cache = {
   invalidate: jest.fn()
 }
@@ -106,10 +127,11 @@ describe('Pinning', () => {
     testClient.announceDB()
     await responsesPromise
     await dbSyncPromise
+
     expect(cache.invalidate).toHaveBeenCalledWith(testClient.rootStore.address.toString())
     expect(cache.invalidate).toHaveBeenCalledWith('space-list_' + testClient.rootStore.address.toString())
-    expect(await testClient.getProfile()).toEqual(PROFILE)
-    expect(await testClient.getPrivImg()).toEqual(PRIV_IMG)
+    expect(await testClient.getProfile()).toEqual(PROFILE_ONLY_VALUES)
+    expect(await testClient.getPrivImg()).toEqual(PRIV_IMG_ONLY_VALUES)
   })
 
   it('dbs should close after 30 min, but not before', async () => {
@@ -222,10 +244,10 @@ class TestClient {
     await this.rootStore.add({ odbAddress: this.pubStore.address.toString() })
     await this.rootStore.add({ odbAddress: this.privStore.address.toString() })
     if (withData) {
-      await this.pubStore.put('name', { value: 'very name' })
-      await this.pubStore.put('image', { value: 'such picture' })
-      await this.privStore.put('shh', { value: 'many secret' })
-      await this.privStore.put('quiet', { value: 'wow!' })
+      await this.pubStore.put('name', PUBLIC_NAME)
+      await this.pubStore.put('image', PUBLIC_IMAGE)
+      await this.privStore.put('shh', PRIVATE_SHH)
+      await this.privStore.put('quiet', PRIVATE_QUIET)
     }
   }
 

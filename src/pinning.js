@@ -2,6 +2,7 @@ const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
+const { resolveDID } = require('./util')
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -9,6 +10,16 @@ const PINNING_ROOM = '3box-pinning'
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
     pubsub: true
+  }
+}
+
+const rejectOnError = (reject, f) => {
+  return (...args) => {
+    try {
+      return f(...args)
+    } catch (e) {
+      reject(e)
+    }
   }
 }
 
@@ -47,25 +58,36 @@ class Pinning {
 
   async getProfile (address) {
     return new Promise((resolve, reject) => {
-      const pubStoreFromRoot = address => {
-        const profileEntry = this.openDBs[address].db
-          .iterator({ limit: -1 })
-          .collect()
-          .find(entry => {
-            return entry.payload.value.odbAddress.split('.')[1] === 'public'
+      try {
+        const pubStoreFromRoot = rejectOnError(reject, address => {
+          const profileEntry = this.openDBs[address].db
+            .iterator({ limit: -1 })
+            .collect()
+            .find(entry => {
+              return entry.payload.value.odbAddress.split('.')[1] === 'public'
+            })
+
+          const profileFromPubStore = rejectOnError(reject, address => {
+            const profile = this.openDBs[address].db.all()
+            const parsedProfile = {}
+
+            Object.entries(profile)
+              .forEach(([k, v]) => {
+                parsedProfile[k] = { value: v.value, timestamp: v.timeStamp }
+              })
+
+            resolve(parsedProfile)
           })
-        const profileFromPubStore = address => {
-          const profile = this.openDBs[address].db.all()
-          let parsedProfile = {}
-          Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
-          resolve(parsedProfile)
-        }
-        this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-        this.analytics.trackGetProfile(address, !!profileFromPubStore)
+
+          this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
+          this.analytics.trackGetProfile(address, !!profileFromPubStore)
+        })
+        // we need to open substores on replicated, otherwise it will break
+        // the auto pinning if the user adds another store to their root store
+        this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
+      } catch (e) {
+        reject(e)
       }
-      // we need to open substores on replicated, otherwise it will break
-      // the auto pinning if the user adds another store to their root store
-      this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
     })
   }
 
@@ -102,7 +124,8 @@ class Pinning {
           const pubSpace = this.openDBs[address].db.all()
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
             if (key.startsWith('pub_')) {
-              obj[key.slice(4)] = pubSpace[key].value
+              const x = pubSpace[key]
+              obj[key.slice(4)] = { value: x.value, timestamp: x.timeStamp }
             }
             return obj
           }, {})
@@ -122,7 +145,7 @@ class Pinning {
   }
 
   async getThread (name) {
-    const address = (await this.orbitdb.determineAddress(name, 'eventlog', { write: ['*'] }, true)).toString()
+    const address = (await this.orbitdb._determineAddress(name, 'eventlog', { write: ['*'] }, false)).toString()
     return new Promise((resolve, reject) => {
       const getThreadData = address => {
         const posts = this.openDBs[address].db
@@ -229,6 +252,13 @@ class Pinning {
         this.analytics.trackPinDB(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
+      }
+      if (data.did) {
+        // We resolve the DID in order to pin the ipfs object
+        try {
+          resolveDID(this.ipfs, data.did)
+          // if this throws it's not a DID
+        } catch (e) {}
       }
     }
   }

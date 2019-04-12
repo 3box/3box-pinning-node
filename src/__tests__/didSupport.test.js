@@ -23,7 +23,6 @@ const IPFS_CONF = {
 }
 
 const DID = 'did:muport:QmNQLKvMqGrDCrzmFS2C5p2JaRZ7bk6DqY7RJinhJoVxVT'
-const IPFS_ADDR = 'QmNQLKvMqGrDCrzmFS2C5p2JaRZ7bk6DqY7RJinhJoVxVT'
 const COMPRESSED_KEY = '02d1f48e3d5c52954a01f1aa104bad1a22e2eed6ecbd4961737fbffa8d75457cd4'
 const UNCOMPRESSED_KEY = '04d1f48e3d5c52954a01f1aa104bad1a22e2eed6ecbd4961737fbffa8d75457cd4ab9b98ef29b96c6a1bbc54c2b9ded4ea6e803c50201c38c017b7b34c7a2451e8'
 const MANIFEST = '{"version":1,"signingKey":"02d1f48e3d5c52954a01f1aa104bad1a22e2eed6ecbd4961737fbffa8d75457cd4","managementKey":"0x3334d0c1fd88529a1285a5f3c9cd71b382684073","asymEncryptionKey":"/MklZEmpCWWbUL/n5qnzLfEo6K0rtrtOrp60qNzrgVU="}'
@@ -34,18 +33,9 @@ describe('basic low level functions are working', () => {
     expect(Util.uncompressSECP256K1Key(COMPRESSED_KEY)).toEqual(UNCOMPRESSED_KEY)
   })
 
-  test('extract ipfs address from a DID', () => {
-    expect(Util.didExtractIPFSAddress(DID)).toEqual(IPFS_ADDR)
-    expect(() => Util.didExtractIPFSAddress(null)).toThrow()
-    expect(() => Util.didExtractIPFSAddress('some-string')).toThrow()
-    expect(() => Util.didExtractIPFSAddress('some:string:Qm12')).toThrow()
-    expect(() => Util.didExtractIPFSAddress('did:some-scheme:Qm12')).toThrow()
-    expect(() => Util.didExtractIPFSAddress('did:muport:Qmé')).toThrow()
-  })
-
   test('did extract signing key', async () => {
     const ipfs = { files: { cat: jest.fn(() => Promise.resolve(MANIFEST)) } }
-    const k = await Util.didExtractSigningKey(IPFS_ADDR, ipfs)
+    const k = await Util.didExtractSigningKey(ipfs, DID)
     expect(k).toEqual('02d1f48e3d5c52954a01f1aa104bad1a22e2eed6ecbd4961737fbffa8d75457cd4')
   })
 })
@@ -57,6 +47,7 @@ describe('test with network', () => {
 
   beforeAll(async () => {
     ipfs = await makeIPFS(IPFS_CONF)
+    const res = await ipfs.files.add(Buffer.from(MANIFEST))
     orbitdb = new OrbitDB(ipfs, ODB_PATH)
   })
 
