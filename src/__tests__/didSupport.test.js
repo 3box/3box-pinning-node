@@ -56,7 +56,7 @@ describe('test with network', () => {
   })
 
   it('can retrieve a root store', async () => {
-    // const addr = await Util.didToRootStoreAddress(DID, { ipfs, orbitdb })
-    // expect(addr).toEqual(ROOT_STORE_ADDR)
+    const addr = await Util.didToRootStoreAddress(DID, { ipfs, orbitdb })
+    expect(addr).toEqual(ROOT_STORE_ADDR)
   })
 })
