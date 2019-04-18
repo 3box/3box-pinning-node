@@ -97,8 +97,6 @@ describe('Pinning', () => {
     })
     testClient.announceDB()
     await responsesPromise
-    expect(cache.invalidate).toHaveBeenCalledTimes(4)
-    expect(cache.invalidate).toHaveBeenCalledWith(testClient.rootStore.address.toString())
     // wait for stores to sync
     await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
     expect(cache.invalidate).toHaveBeenCalledWith('space-list_' + testClient.rootStore.address.toString())
@@ -128,8 +126,6 @@ describe('Pinning', () => {
     await responsesPromise
     await dbSyncPromise
 
-    expect(cache.invalidate).toHaveBeenCalledWith(testClient.rootStore.address.toString())
-    expect(cache.invalidate).toHaveBeenCalledWith('space-list_' + testClient.rootStore.address.toString())
     expect(await testClient.getProfile()).toEqual(PROFILE_ONLY_VALUES)
     expect(await testClient.getPrivImg()).toEqual(PRIV_IMG_ONLY_VALUES)
   })
@@ -181,8 +177,6 @@ describe('Pinning', () => {
       })
       testClient.announceThread()
       await responsesPromise
-      expect(cache.invalidate).toHaveBeenCalledTimes(1)
-      expect(cache.invalidate).toHaveBeenCalledWith('3box.thread.myspace.coolthread')
       // wait for thread to sync
       await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
     })
@@ -208,8 +202,6 @@ describe('Pinning', () => {
       testClient.announceThread()
       await responsesPromise
       await dbSyncPromise
-      expect(cache.invalidate).toHaveBeenCalledTimes(1)
-      expect(cache.invalidate).toHaveBeenCalledWith('3box.thread.myspace.coolthread')
       let posts = await testClient.getThreadPosts()
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')

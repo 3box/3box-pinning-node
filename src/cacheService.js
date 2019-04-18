@@ -24,9 +24,10 @@ class CacheService {
   }
 
   start () {
-    this.app.listen(8081, () => {
+    const server = this.app.listen(8081, () => {
       console.log('Cache service running on port 8081')
     })
+    server.keepAliveTimeout = 60 * 1000
   }
 
   async listSpaces (req, res, next) {

@@ -4,7 +4,7 @@ jest.mock('express', () => {
       use: jest.fn(),
       get: jest.fn(),
       post: jest.fn(),
-      listen: jest.fn()
+      listen: jest.fn(() => { return { keepAliveTimeout:0}})
     }
   }
   express.json = jest.fn()
