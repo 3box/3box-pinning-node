@@ -3,9 +3,12 @@ const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
+const orbitDBCache = require('orbit-db-cache-redis')
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
+const FORTY_FIVE_SECONDS = 45 * 1000
+const NINETY_SECONDS = 2 * FORTY_FIVE_SECONDS
 const PINNING_ROOM = '3box-pinning'
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
@@ -27,33 +30,46 @@ const rejectOnError = (reject, f) => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsPath, orbitdbPath, analytics) {
+  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly) {
     this.cache = cache
-    this.ipfsPath = ipfsPath
+    this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
+    this.orbitCacheOpts = orbitCacheOpts
+    this.runCacheServiceOnly = runCacheServiceOnly
+    this.dbOpenInterval = this.runCacheServiceOnly ? NINETY_SECONDS : THIRTY_MINUTES
+    this.dbCheckCloseInterval = this.runCacheServiceOnly ? FORTY_FIVE_SECONDS : TEN_MINUTES
   }
 
   async start () {
     this.ipfs = await this._initIpfs()
     const ipfsId = await this.ipfs.id()
     console.log(ipfsId)
-    this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath)
+    const orbitOpts = this.orbitCacheOpts ? { cache: orbitDBCache(this.orbitCacheOpts) } : { }
+    this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath, orbitOpts)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
-    // close stores after 30 min check every 10 min
-    setInterval(this.checkAndCloseDBs.bind(this), TEN_MINUTES)
+    setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
   }
 
   checkAndCloseDBs () {
     Object.keys(this.openDBs).map(async key => {
-      if (Date.now() > this.openDBs[key].latestTouch + THIRTY_MINUTES) {
-        const db = this.openDBs[key].db
-        delete this.openDBs[key]
-        await db.close()
+      if (Date.now() > this.openDBs[key].latestTouch + this.dbOpenInterval) {
+        await this.dbClose(key)
       }
     })
+  }
+
+  async dbClose (address) {
+    const entry = this.openDBs[address]
+    if (entry) {
+      if (!entry.loading) {
+        const db = entry.db
+        delete this.openDBs[address]
+        await db.close()
+      }
+    }
   }
 
   async getProfile (address) {
@@ -120,6 +136,7 @@ class Pinning {
           .find(entry => {
             return entry.payload.value.odbAddress.split('.')[2] === name
           })
+
         const pubDataFromSpaceStore = address => {
           const pubSpace = this.openDBs[address].db.all()
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
@@ -164,31 +181,35 @@ class Pinning {
   }
 
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress) {
-    this.invalidateDBCache(address, rootStoreAddress)
     let tick = new timer.Tick('openDB')
     tick.start()
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
-      this.openDBs[address] = {
-        dbPromise: this.orbitdb.open(address),
-        latestTouch: Date.now()
-      }
-      this.openDBs[address].db = await this.openDBs[address].dbPromise
-      delete this.openDBs[address].dbPromise
-      this.openDBs[address].db.events.on('ready', () => {
-        responseFn(address)
+      const dbPromise = new Promise(async (resolve, reject) => {
+        const db = await this.orbitdb.open(address)
+        db.events.on('ready', () => {
+          resolve(db)
+        })
+        db.load()
       })
-      this.openDBs[address].db.load()
+
+      this.openDBs[address] = {
+        dbPromise: dbPromise,
+        latestTouch: Date.now(),
+        loading: true
+      }
+
+      this.openDBs[address].db = await this.openDBs[address].dbPromise
+      this.openDBs[address].loading = false
+      responseFn(address)
+
       this.openDBs[address].db.events.on('replicated', () => {
         if (onReplicatedFn) onReplicatedFn(address)
         this.invalidateDBCache(address, rootStoreAddress)
       })
     } else {
-      if (!this.openDBs[address].dbPromise) {
-        // We don't need to call the responseFn if there is a promise present
-        // as it will get called anyway
-        responseFn(address)
-      }
+      await this.openDBs[address].dbPromise
+      responseFn(address)
     }
     tick.stop()
     this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
@@ -218,6 +239,7 @@ class Pinning {
   }
 
   _openSubStores (address) {
+    if (this.runCacheServiceOnly) { return }
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
@@ -269,9 +291,8 @@ class Pinning {
 
   async _initIpfs () {
     // Create IPFS instance
-    let ipfsOpts = IPFS_OPTIONS
-    if (this.ipfsPath) ipfsOpts.repo = this.ipfsPath
-    const ipfs = new IPFS(ipfsOpts)
+    const config = { ...IPFS_OPTIONS, ...this.ipfsConfig }
+    const ipfs = new IPFS(config)
     return new Promise((resolve, reject) => {
       ipfs.on('error', (e) => console.error(e))
       ipfs.on('ready', () => resolve(ipfs))
