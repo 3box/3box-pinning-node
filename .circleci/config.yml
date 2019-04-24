@@ -48,10 +48,10 @@ jobs:
       - aws-cli/configure
       - run:
           name: Deploy Pinning Service
-          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-prod  --service pinning-node-service-prod
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-dev  --service pinning-node-service-dev
       - run:
           name: Deploy API Service
-          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-prod  --service profile-api-service-prod
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-dev  --service profile-api-service-dev
 
   # Need seperate clusters if we have dev and prod, depends how we want to treat dev
   deploy-prod:
@@ -76,12 +76,12 @@ workflows:
       - aws-ecr/build_and_push_image:
           name: push-dev-image
           repo: 3box-pinning-server
-          tag: latest
+          tag: develop
           requires:
             - test
           filters:
             branches:
-              only: feat/scaling
+              only: develop
       - aws-ecr/build_and_push_image:
           name: push-prod-image
           repo: 3box-pinning-server
@@ -96,7 +96,7 @@ workflows:
             - push-dev-image
           filters:
             branches:
-              only: feat/scaling
+              only: develop
       - deploy-prod:
           requires:
             - push-prod-image
