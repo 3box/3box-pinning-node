@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.3.0 - 2019-04-12
+* Feature: Add the ability to query metadata in the profile and space APIs
+* Fix: Automatically pin DIDs that are sent along when opening a DB
+* Fix: Don't break when opening empty threads
+* Fix: Make getProfile API more resilient to errors
+
 ## v1.2.0 - 2019-03-28
 * Feature: Pinning for threads
 * Feature: Query by DID in getProfile and getSpace
