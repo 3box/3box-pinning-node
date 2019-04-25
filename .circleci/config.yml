@@ -1,6 +1,10 @@
-version: 2
+orbs:
+  aws-cli: circleci/aws-cli@0.1.13
+  aws-ecr: circleci/aws-ecr@1.0.0
+version: 2.1
+
 jobs:
-  build:
+  test:
     working_directory: ~/3box-pinning-server
     docker:
       - image: circleci/node:10
@@ -35,18 +39,67 @@ jobs:
           paths:
             - ./node_modules
 
-      - deploy:
-          name: deployment
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-              cat deploy.sh | ssh -o "StrictHostKeyChecking no" $SSH_USER_DEVELOP@$SSH_HOST_DEVELOP CIRCLE_BRANCH=develop 'bash -'
-            fi
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              cat deploy.sh | ssh -o "StrictHostKeyChecking no" $SSH_USER_MASTER@$SSH_HOST_MASTER CIRCLE_BRANCH=master 'bash -'
-            fi
+  deploy-dev:
+    working_directory: ~/3box-pinning-server
+    docker:
+      - image: circleci/python:3.7.1
+    steps:
+      - aws-cli/install
+      - aws-cli/configure
+      - run:
+          name: Deploy Pinning Service
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-dev  --service pinning-node-service-dev
+      - run:
+          name: Deploy API Service
+          command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-dev  --service profile-api-service-dev
+
+  # Need seperate clusters if we have dev and prod, depends how we want to treat dev
+  deploy-prod:
+    working_directory: ~/3box-pinning-server
+    docker:
+      - image: circleci/python:3.7.1
+
+    steps:
+      - aws-cli/install
+      - aws-cli/configure
+      - run:
+          name: Deploy Pinning Service
+          command: aws ecs update-service --force-new-deployment --cluster pinning-node-cluster-prod  --service pinning-node-service-prod
+      - run:
+          name: Deploy API Service
+          command: aws ecs update-service --force-new-deployment --cluster profile-api-cluster-prod --service profile-api-service-prod
 
 workflows:
-  version: 2
-  build-and-deploy:
+  build-deploy:
     jobs:
-      - build
+      - test
+      - aws-ecr/build_and_push_image:
+          name: push-dev-image
+          repo: 3box-pinning-server
+          tag: develop
+          requires:
+            - test
+          filters:
+            branches:
+              only: develop
+      - aws-ecr/build_and_push_image:
+          name: push-prod-image
+          repo: 3box-pinning-server
+          tag: latest
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
+      - deploy-dev:
+          requires:
+            - push-dev-image
+          filters:
+            branches:
+              only: develop
+      - deploy-prod:
+          requires:
+            - push-prod-image
+          filters:
+            branches:
+              only: master

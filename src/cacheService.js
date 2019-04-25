@@ -12,6 +12,10 @@ class CacheService {
     this.addressServer = addressServer
     this.app = express()
     this.app.use(express.json())
+    this.app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*')
+      next()
+    })
     this.app.get('/profile', this.getProfile.bind(this))
     this.app.post('/profileList', this.getProfiles.bind(this))
     this.app.get('/space', this.getSpace.bind(this))
@@ -20,9 +24,10 @@ class CacheService {
   }
 
   start () {
-    this.app.listen(8081, () => {
+    const server = this.app.listen(8081, () => {
       console.log('Cache service running on port 8081')
     })
+    server.keepAliveTimeout = 60 * 1000
   }
 
   async listSpaces (req, res, next) {

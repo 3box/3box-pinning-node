@@ -1,5 +1,13 @@
 # Release Notes
 
+## v1.4.0 - 2019-04-25
+* Feature: optional S3 IPFS Repo
+* Feature: optional Redis OribtDB cache
+* Feature: optional API only optimization
+* Fix: openBox concurrency issues
+* Build: dockerfile
+* Build: container based CI/CD pipeline
+
 ## v1.3.0 - 2019-04-12
 * Feature: Add the ability to query metadata in the profile and space APIs
 * Fix: Automatically pin DIDs that are sent along when opening a DB
