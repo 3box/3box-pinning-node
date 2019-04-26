@@ -183,6 +183,7 @@ class Pinning {
   }
 
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress) {
+    this.rewriteDBCache(address, rootStoreAddress)
     let tick = new timer.Tick('openDB')
     tick.start()
     if (!this.openDBs[address]) {
@@ -207,7 +208,7 @@ class Pinning {
 
       this.openDBs[address].db.events.on('replicated', () => {
         if (onReplicatedFn) onReplicatedFn(address)
-        this.invalidateDBCache(address, rootStoreAddress)
+        this.rewriteDBCache(address, rootStoreAddress)
       })
     } else {
       await this.openDBs[address].dbPromise
@@ -217,20 +218,25 @@ class Pinning {
     this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
   }
 
-  invalidateDBCache (odbAddress, rootStoreAddress) {
+  async rewriteDBCache (odbAddress, rootStoreAddress) {
     const split = odbAddress.split('.')
     if (split[1] === 'space') {
       const spaceName = split[2]
-      this.cache.invalidate(`${rootStoreAddress}_${spaceName}`)
+      const space = await this.getSpace(rootStoreAddress, spaceName)
+      this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
     } else if (split[1] === 'public') {
       // the profile is only saved under the rootStoreAddress as key
-      this.cache.invalidate(`${rootStoreAddress}`)
+      const profile = await this.getProfile(rootStoreAddress)
+      this.cache.write(rootStoreAddress, profile)
     } else if (split[1] === 'root') {
       // in this case odbAddress is the rootStoreAddress
-      this.cache.invalidate(`space-list_${odbAddress}`)
+      const spaces = await this.listSpaces(rootStoreAddress)
+      this.cache.write(`space-list_${odbAddress}`, spaces)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
-      this.cache.invalidate(odbAddress.split('/')[3])
+      const name = odbAddress.split('/')[3]
+      const posts = await this.getThread(name)
+      this.cache.write(name, posts)
     }
   }
 
