@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.4.1 - 2019-04-27
+* Fix/Performance: Cache liveness and fix, rewrite cache on change instead of invalidate
+
 ## v1.4.0 - 2019-04-25
 * Feature: optional S3 IPFS Repo
 * Feature: optional Redis OribtDB cache

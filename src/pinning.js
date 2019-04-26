@@ -227,8 +227,7 @@ class Pinning {
       this.cache.write(rootStoreAddress, profile)
     } else if (split[1] === 'root') {
       // in this case odbAddress is the rootStoreAddress
-      // const spaces = await this.listSpaces(odbAddress)
-      const spaces = []
+      const spaces = await this.listSpaces(odbAddress)
       this.cache.write(`space-list_${odbAddress}`, spaces)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
