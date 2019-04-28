@@ -62,22 +62,6 @@ describe('Pinning', () => {
     cache.write.mockClear()
   })
 
-  // it('should invalidate DB cache correctly', async () => {
-  //   const spaceDBAddr = '/orbitdb/QmManifestHash/3box.space.spaceName.keyvalue'
-  //   const publicDBAddr = '/orbitdb/QmManifestHash/somedata.public'
-  //   const rootStoreDBAddr = '/orbitdb/QmManifestHash/somedata.root'
-  //   await pinning.rewriteDBCache(rootStoreDBAddr)
-  //   expect(cache.write).toHaveBeenCalledWith(`space-list_${rootStoreDBAddr}`)
-  //   cache.write.mockClear()
-  //   await pinning.rewriteDBCache(publicDBAddr, rootStoreDBAddr)
-  //   expect(cache.write).toHaveBeenCalledWith(rootStoreDBAddr)
-  //   cache.write.mockClear()
-  //   await pinning.rewriteDBCache(spaceDBAddr, rootStoreDBAddr)
-  //   expect(cache.write).toHaveBeenCalledWith(`${rootStoreDBAddr}_spaceName`)
-  //   cache.write.mockClear()
-  //   await closeAllStores(pinning)
-  // })
-
   it('should sync db correctly from client', async () => {
     await testClient.createDB(true)
     const responsesPromise = new Promise((resolve, reject) => {
@@ -209,6 +193,25 @@ describe('Pinning', () => {
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
     })
+  })
+
+  it('should update DB cache correctly', async () => {
+    const spaceDBAddr = '/orbitdb/QmManifestHash/3box.space.spaceName.keyvalue'
+    const publicDBAddr = '/orbitdb/QmManifestHash/somedata.public'
+    const rootStoreDBAddr = '/orbitdb/QmManifestHash/somedata.root'
+    pinning.listSpaces = jest.fn(() => 'spaces')
+    pinning.getProfile = jest.fn(() => 'profile')
+    pinning.getSpace = jest.fn(() => 'space')
+    await pinning.rewriteDBCache(rootStoreDBAddr)
+    expect(cache.write).toHaveBeenCalledWith(`space-list_${rootStoreDBAddr}`, 'spaces')
+    cache.write.mockClear()
+    await pinning.rewriteDBCache(publicDBAddr, rootStoreDBAddr)
+    expect(cache.write).toHaveBeenCalledWith(rootStoreDBAddr, 'profile')
+    cache.write.mockClear()
+    await pinning.rewriteDBCache(spaceDBAddr, rootStoreDBAddr)
+    expect(cache.write).toHaveBeenCalledWith(`${rootStoreDBAddr}_spaceName`, 'space')
+    cache.write.mockClear()
+    await closeAllStores(pinning)
   })
 })
 
