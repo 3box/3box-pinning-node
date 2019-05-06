@@ -11,12 +11,12 @@ const ODB_PATH_1 = './tmp/orbitdb1'
 const ODB_PATH_2 = './tmp/orbitdb2'
 
 // Data to be pushed to the store
-const PUBLIC_NAME = { timeStamp: 12, value: 'very name' }
-const PUBLIC_IMAGE = { timeStamp: 13, value: 'such picture' }
-const PRIVATE_SHH = { timeStamp: 14, value: 'many secret' }
-const PRIVATE_QUIET = { timeStamp: 15, value: 'wow!' }
+const PUBLIC_NAME = { timeStamp: 12000, value: 'very name' }
+const PUBLIC_IMAGE = { timeStamp: 13000, value: 'such picture' }
+const PRIVATE_SHH = { timeStamp: 14000, value: 'many secret' }
+const PRIVATE_QUIET = { timeStamp: 15000, value: 'wow!' }
 
-// Date we are representing (note the difference for time_S_tamp)
+// Date we are representing (note the difference for time_S_tamp and the unit, ms -> seconds)
 const PROFILE = {
   name: { timestamp: 12, value: 'very name' },
   image: { timestamp: 13, value: 'such picture' }

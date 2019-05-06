@@ -89,7 +89,8 @@ class Pinning {
 
             Object.entries(profile)
               .forEach(([k, v]) => {
-                parsedProfile[k] = { value: v.value, timestamp: v.timeStamp }
+                const timestamp = Math.floor(v.timeStamp / 1000)
+                parsedProfile[k] = { value: v.value, timestamp }
               })
 
             resolve(parsedProfile)
@@ -142,7 +143,8 @@ class Pinning {
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
             if (key.startsWith('pub_')) {
               const x = pubSpace[key]
-              obj[key.slice(4)] = { value: x.value, timestamp: x.timeStamp }
+              const timestamp = Math.floor(x.timeStamp / 1000)
+              obj[key.slice(4)] = { value: x.value, timestamp }
             }
             return obj
           }, {})

@@ -67,7 +67,7 @@ jobs:
           command: aws ecs update-service --force-new-deployment --cluster pinning-node-cluster-prod  --service pinning-node-service-prod
       - run:
           name: Deploy API Service
-          command: aws ecs update-service --force-new-deployment --cluster profile-api-cluster-prod --service profile-api-service-prod
+          command: aws ecs update-service --force-new-deployment --cluster pinning-node-cluster-prod  --service profile-api-service-prod
 
 workflows:
   build-deploy:
