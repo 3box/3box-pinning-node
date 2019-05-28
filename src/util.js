@@ -40,7 +40,15 @@ class Util {
 
     const rootStore = `${fingerprint}.root`
 
-    const addr = await orbitdb.determineAddress(rootStore, 'feed', { write: [signingKey] })
+    const opts = {
+      format: 'dag-pb',
+      accessController: {
+        write: [signingKey],
+        type: 'legacy-ipfs-3box',
+        skipManifest: true
+      }
+    }
+    const addr = await orbitdb.determineAddress(rootStore, 'feed', opts)
 
     return addr.toString()
   }
