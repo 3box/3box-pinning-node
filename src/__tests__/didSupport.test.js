@@ -1,4 +1,7 @@
 const OrbitDB = require('orbit-db')
+const { LegacyIPFS3BoxAccessController } = require('3box-orbitdb-plugins')
+const AccessControllers = require('orbit-db-access-controllers')
+AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 const Util = require('../util')
 const { makeIPFS } = require('./tools')
 

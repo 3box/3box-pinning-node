@@ -1,6 +1,6 @@
 const IPFS = require('ipfs')
 
-test('this is a test tools module', () => {})
+test('', () => {})
 
 async function makeIPFS (conf) {
   return new Promise((resolve, reject) => {

@@ -3,7 +3,13 @@ const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
+const register3idResolver = require('3id-resolver')
 const orbitDBCache = require('orbit-db-cache-redis')
+const { OdbIdentityProvider, LegacyIPFS3BoxAccessController } = require('3box-orbitdb-plugins')
+const Identities = require('orbit-db-identity-provider')
+Identities.addIdentityProvider(OdbIdentityProvider)
+const AccessControllers = require('orbit-db-access-controllers')
+AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -44,10 +50,16 @@ class Pinning {
 
   async start () {
     this.ipfs = await this._initIpfs()
+    register3idResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
     console.log(ipfsId)
-    const orbitOpts = this.orbitCacheOpts ? { cache: orbitDBCache(this.orbitCacheOpts) } : { }
-    this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath, orbitOpts)
+    const orbitOpts = {
+      directory: this.orbitdbPath
+    }
+    if (this.orbitCacheOpts) {
+      orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
+    }
+    this.orbitdb = await OrbitDB.createInstance(this.ipfs, orbitOpts)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
@@ -84,7 +96,7 @@ class Pinning {
             })
 
           const profileFromPubStore = rejectOnError(reject, address => {
-            const profile = this.openDBs[address].db.all()
+            const profile = this.openDBs[address].db.all
             const parsedProfile = {}
 
             Object.entries(profile)
@@ -139,7 +151,7 @@ class Pinning {
           })
 
         const pubDataFromSpaceStore = address => {
-          const pubSpace = this.openDBs[address].db.all()
+          const pubSpace = this.openDBs[address].db.all
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
             if (key.startsWith('pub_')) {
               const x = pubSpace[key]
@@ -188,7 +200,13 @@ class Pinning {
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       const dbPromise = new Promise(async (resolve, reject) => {
-        const db = await this.orbitdb.open(address)
+        const opts = {
+          accessController: {
+            type: 'legacy-ipfs-3box',
+            skipManifest: true
+          }
+        }
+        const db = await this.orbitdb.open(address, opts)
         db.events.on('ready', () => {
           resolve(db)
         })
