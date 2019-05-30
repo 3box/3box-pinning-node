@@ -3,6 +3,7 @@ const Multihash = require('multihashes')
 const sha256 = require('js-sha256').sha256
 const resolveDID = require('did-resolver').default
 const registerMuportResolver = require('muport-did-resolver')
+const register3idResolver = require('3id-resolver')
 
 /**
  *  Collection of utilities to measure important KPIs
@@ -29,6 +30,7 @@ class Util {
 
   static async resolveDID (ipfs, did) {
     registerMuportResolver(ipfs)
+    register3idResolver(ipfs)
     return resolveDID(did)
   }
 
