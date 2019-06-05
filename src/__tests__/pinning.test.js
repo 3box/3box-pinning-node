@@ -91,7 +91,7 @@ describe('Pinning', () => {
       trackGetThread: jest.fn(),
       trackListSpaces:jest.fn()
     }
-    pinning = new Pinning(cache, IPFS_PATH_1, ODB_PATH_1, analyticsMock)
+    pinning = new Pinning(cache, { repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
