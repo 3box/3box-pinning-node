@@ -37,7 +37,7 @@ describe('basic low level functions are working', () => {
   })
 
   test('did extract signing key', async () => {
-    const ipfs = { files: { cat: jest.fn(() => Promise.resolve(MANIFEST)) } }
+    const ipfs = { cat: jest.fn(() => Promise.resolve(MANIFEST)) }
     const k = await Util.didExtractSigningKey(ipfs, DID)
     expect(k).toEqual('02d1f48e3d5c52954a01f1aa104bad1a22e2eed6ecbd4961737fbffa8d75457cd4')
   })
@@ -50,7 +50,7 @@ describe('test with network', () => {
 
   beforeAll(async () => {
     ipfs = await makeIPFS(IPFS_CONF)
-    const res = await ipfs.files.add(Buffer.from(MANIFEST))
+    const res = await ipfs.add(Buffer.from(MANIFEST))
     orbitdb = new OrbitDB(ipfs, ODB_PATH)
   })
 
