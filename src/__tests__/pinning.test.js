@@ -238,6 +238,9 @@ describe('Pinning', () => {
       testClient.announceThread()
       await responsesPromise
       await dbSyncPromise
+      // for some reason there is an issue with the db not getting fully
+      // replicated in time even after the dbSyncPromise. Wait for 0.5 s
+      await new Promise((resolve, reject) => { setTimeout(resolve, 500) })
       let posts = await testClient.getThreadPosts()
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
