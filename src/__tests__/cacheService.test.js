@@ -160,7 +160,7 @@ describe('CacheService', () => {
 
   describe('Threads', () => {
     it('should get thread correctly, with cache', async () => {
-      const req = { query: { space: 'space1', name: 'thread1' } }
+      const req = { query: { space: 'space1', name: 'thread1', mod: 'did:3:asdfe', members: 'false' } }
       const res = { json: jest.fn() }
       await cs.getThread(req, res)
 
@@ -173,7 +173,7 @@ describe('CacheService', () => {
     })
 
     it('should get thread correctly, without cache', async () => {
-      const req = { query: { space: 'space1', name: 'thread1' } }
+      const req = { query: { space: 'space1', name: 'thread1', mod: 'did:3:asdfe', members: 'false' } }
       const res = { json: jest.fn() }
       cache.read.mockImplementationOnce(() => null)
       await cs.getThread(req, res)
@@ -181,7 +181,7 @@ describe('CacheService', () => {
       expect(cs.cache.read).toHaveBeenCalledTimes(1)
       expect(cs.cache.read).toHaveBeenCalledWith('3box.thread.space1.thread1')
       expect(cs.pinning.getThread).toHaveBeenCalledTimes(1)
-      expect(cs.pinning.getThread).toHaveBeenCalledWith('3box.thread.space1.thread1')
+      expect(cs.pinning.getThread).toHaveBeenCalledWith('3box.thread.space1.thread1', 'did:3:asdfe', false)
       expect(res.json).toHaveBeenCalledTimes(1)
       expect(res.json).toHaveBeenCalledWith(THREADS_1)
       expect(cs.cache.write).toHaveBeenCalledTimes(1)

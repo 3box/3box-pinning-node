@@ -64,12 +64,14 @@ class CacheService {
   async getThread (req, res, next) {
     const spaceName = req.query.space
     const threadName = req.query.name
+    const rootMod = req.query.mod
+    const members = req.query.members === 'true'
 
     const fullName = namesTothreadName(spaceName, threadName)
     const cachePosts = await this.cache.read(fullName)
     let posts
     try {
-      posts = cachePosts || await this.pinning.getThread(fullName)
+      posts = cachePosts || await this.pinning.getThread(fullName, rootMod, members)
     } catch (e) {
       res.status(500).send('Error: Failed to load posts')
       return
