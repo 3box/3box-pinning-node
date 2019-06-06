@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/uport-project/3box-pinning-node#readme",
   "dependencies": {
-    "3box-orbitdb-plugins": "^1.0.2-beta.1",
+    "3box-orbitdb-plugins": "^1.0.3",
     "3id-resolver": "0.0.4",
     "analytics-node": "^3.3.0",
     "aws-sdk": "^2.414.0",
@@ -36,7 +36,7 @@
     "ipfs": "^0.35.0",
     "js-sha256": "^0.9.0",
     "multihashes": "^0.4.14",
-    "muport-did-resolver": "^0.3.0-alpha.6",
+    "muport-did-resolver": "^0.3.0",
     "orbit-db": "^0.21.0",
     "orbit-db-cache-redis": "0.0.3",
     "redis": "^2.8.0",

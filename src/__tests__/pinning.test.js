@@ -1,10 +1,17 @@
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
-const { OdbIdentityProvider, LegacyIPFS3BoxAccessController } = require('3box-orbitdb-plugins')
+const {
+  OdbIdentityProvider,
+  LegacyIPFS3BoxAccessController,
+  ThreadAccessController,
+  ModeratorAccessController
+} = require('3box-orbitdb-plugins')
 const Identities = require('orbit-db-identity-provider')
 Identities.addIdentityProvider(OdbIdentityProvider)
 const AccessControllers = require('orbit-db-access-controllers')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
+AccessControllers.addAccessController({ AccessController: ThreadAccessController })
+AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 const didJWT = require('did-jwt')
 const { registerMethod } = require('did-resolver')
 const { makeIPFS } = require('./tools')
@@ -67,7 +74,7 @@ const register3idResolver = () => registerMethod('3', async () => {
     }],
     'authentication': [{
       'type': 'Secp256k1SignatureAuthentication2018',
-      'publicKey': 'did:2:asdfasdf#signingKey'
+      'publicKey': 'did:3:asdfasdf#signingKey'
     }]
   }
 })
@@ -193,7 +200,7 @@ describe('Pinning', () => {
     expect(profile).toEqual(PROFILE)
   })
 
-  describe.skip('Threads', () => {
+  describe('Threads', () => {
     it('should pin thread correctly from client', async () => {
       await testClient.createThread(true)
       const responsesPromise = new Promise((resolve, reject) => {
@@ -207,11 +214,11 @@ describe('Pinning', () => {
       testClient.announceThread()
       await responsesPromise
       // wait for thread to sync
-      await new Promise((resolve, reject) => { setTimeout(resolve, 3000) })
+      await new Promise((resolve, reject) => { setTimeout(resolve, 5000) })
     })
 
     it('should get tread post correctly', async () => {
-      const posts = await pinning.getThread('3box.thread.myspace.coolthread')
+      const posts = await pinning.getThread('3box.thread.myspace.coolthread', THREEID_MOCK.DID, false)
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
     })
@@ -272,17 +279,18 @@ class TestClient {
 
   async init () {
     this.ipfs = await initIPFS()
+    this.identity = await Identities.createIdentity({
+      type: '3ID',
+      threeId: THREEID_MOCK,
+      identityKeysPath: './tmp/odbIdentityKeys'
+    })
   }
 
   async createDB (withData) {
     const ipfsId = await this.ipfs.id()
     this.orbitdb = await OrbitDB.createInstance(this.ipfs, {
       directory: ODB_PATH_2,
-      identity: await Identities.createIdentity({
-        type: '3ID',
-        threeId: THREEID_MOCK,
-        identityKeysPath: './tmp/odbIdentityKeys'
-      })
+      identity: this.identity
     })
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     const key = THREEID_MOCK.getKeyringBySpaceName().getPublicKeys(true).signingKey
@@ -340,7 +348,16 @@ class TestClient {
 
   async createThread (withData) {
     const tName = '3box.thread.myspace.coolthread'
-    this.thread = await this.orbitdb.log(tName, { write: ['*'] })
+    this.thread = await this.orbitdb.feed(tName, {
+      identity: this.identity,
+      accessController: {
+        type: 'thread-access',
+        threadName: tName,
+        members: false,
+        rootMod: THREEID_MOCK.DID,
+        identity: this.identity
+      }
+    })
     if (withData) {
       await this.thread.add({ message: 'a great post' })
       await this.thread.add({ message: 'another great post' })
@@ -360,8 +377,7 @@ class TestClient {
     return this.thread
       .iterator({ limit: -1 })
       .collect().map(entry => {
-        let post = entry.payload.value
-        post.postId = entry.hash
+        const post = Object.assign({ postId: entry.hash }, entry.payload.value)
         return post
       })
   }
