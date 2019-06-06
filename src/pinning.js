@@ -1,15 +1,23 @@
 const IPFS = require('ipfs')
+const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
 const register3idResolver = require('3id-resolver')
 const orbitDBCache = require('orbit-db-cache-redis')
-const { OdbIdentityProvider, LegacyIPFS3BoxAccessController } = require('3box-orbitdb-plugins')
+const {
+  OdbIdentityProvider,
+  LegacyIPFS3BoxAccessController,
+  ThreadAccessController,
+  ModeratorAccessController
+} = require('3box-orbitdb-plugins')
 const Identities = require('orbit-db-identity-provider')
 Identities.addIdentityProvider(OdbIdentityProvider)
 const AccessControllers = require('orbit-db-access-controllers')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
+AccessControllers.addAccessController({ AccessController: ThreadAccessController })
+AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
@@ -175,16 +183,24 @@ class Pinning {
     })
   }
 
-  async getThread (name) {
-    const address = (await this.orbitdb._determineAddress(name, 'eventlog', { write: ['*'] }, false)).toString()
+  async getThread (name, rootMod, members, address) {
+    if (!address) {
+      address = (await this.orbitdb._determineAddress(name, 'feed', {
+        accessController: {
+          type: 'thread-access',
+          threadName: name,
+          members,
+          rootMod
+        }
+      }, false)).toString()
+    }
     return new Promise((resolve, reject) => {
       const getThreadData = address => {
         const posts = this.openDBs[address].db
           .iterator({ limit: -1 })
           .collect()
           .map(entry => {
-            let post = entry.payload.value
-            post.postId = entry.hash
+            const post = Object.assign({ postId: entry.hash }, entry.payload.value)
             return post
           })
         resolve(posts)
@@ -200,13 +216,14 @@ class Pinning {
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       const dbPromise = new Promise(async (resolve, reject) => {
+        const cid = new CID(address.split('/')[2])
         const opts = {
           accessController: {
             type: 'legacy-ipfs-3box',
             skipManifest: true
           }
         }
-        const db = await this.orbitdb.open(address, opts)
+        const db = await this.orbitdb.open(address, cid.version === 0 ? opts : {})
         db.events.on('ready', () => {
           resolve(db)
         })
@@ -252,7 +269,7 @@ class Pinning {
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
       const name = odbAddress.split('/')[3]
-      const posts = await this.getThread(name)
+      const posts = await this.getThread(null, null, null, odbAddress)
       this.cache.write(name, posts)
     }
   }
