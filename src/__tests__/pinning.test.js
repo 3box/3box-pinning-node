@@ -218,7 +218,8 @@ describe('Pinning', () => {
     })
 
     it('should get tread post correctly', async () => {
-      const posts = await pinning.getThread('3box.thread.myspace.coolthread', THREEID_MOCK.DID, false)
+      const address = await pinning.getThreadAddress('3box.thread.myspace.coolthread', THREEID_MOCK.DID, false)
+      const posts = await pinning.getThread(address)
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
     })

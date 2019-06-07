@@ -62,22 +62,24 @@ class CacheService {
   }
 
   async getThread (req, res, next) {
-    const spaceName = req.query.space
-    const threadName = req.query.name
-    const rootMod = req.query.mod
-    const members = req.query.members === 'true'
+    let address = req.query.address
+    if (!address) {
+      const fullName = namesTothreadName(req.query.space, req.query.name)
+      const rootMod = req.query.mod
+      const members = req.query.members === 'true'
+      address = this.pinning.getThreadAddress(fullName, rootMod, members)
+    }
 
-    const fullName = namesTothreadName(spaceName, threadName)
-    const cachePosts = await this.cache.read(fullName)
+    const cachePosts = await this.cache.read(address)
     let posts
     try {
-      posts = cachePosts || await this.pinning.getThread(fullName, rootMod, members)
+      posts = cachePosts || await this.pinning.getThread(address)
     } catch (e) {
       res.status(500).send('Error: Failed to load posts')
       return
     }
     res.json(posts)
-    if (!cachePosts) this.cache.write(fullName, posts)
+    if (!cachePosts) this.cache.write(address, posts)
   }
 
   async ethereumToRootStoreAddress (address) {

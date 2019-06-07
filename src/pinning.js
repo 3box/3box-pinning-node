@@ -183,17 +183,18 @@ class Pinning {
     })
   }
 
-  async getThread (name, rootMod, members, address) {
-    if (!address) {
-      address = (await this.orbitdb._determineAddress(name, 'feed', {
-        accessController: {
-          type: 'thread-access',
-          threadName: name,
-          members,
-          rootMod
-        }
-      }, false)).toString()
-    }
+  async getThreadAddress (name, rootMod, members) {
+    return (await this.orbitdb._determineAddress(name, 'feed', {
+      accessController: {
+        type: 'thread-access',
+        threadName: name,
+        members,
+        rootMod
+      }
+    }, false)).toString()
+  }
+
+  async getThread (address) {
     return new Promise((resolve, reject) => {
       const getThreadData = address => {
         const posts = this.openDBs[address].db
@@ -268,9 +269,8 @@ class Pinning {
       this.cache.write(`space-list_${odbAddress}`, spaces)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
-      const name = odbAddress.split('/')[3]
-      const posts = await this.getThread(null, null, null, odbAddress)
-      this.cache.write(name, posts)
+      const posts = await this.getThread(odbAddress)
+      this.cache.write(odbAddress, posts)
     }
   }
 
