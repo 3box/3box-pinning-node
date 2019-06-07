@@ -2,12 +2,7 @@ const elliptic = require('elliptic')
 const Multihash = require('multihashes')
 const sha256 = require('js-sha256').sha256
 const resolveDID = require('did-resolver').default
-const registerMuportResolver = require('muport-did-resolver')
-const register3idResolver = require('3id-resolver')
 
-/**
- *  Collection of utilities to measure important KPIs
- */
 class Util {
   /**
    * Compute a multi-hash that is used in the did to root store process (fingerprinting)
@@ -22,20 +17,18 @@ class Util {
     return ec.keyFromPublic(key, 'hex').getPublic(false, 'hex')
   }
 
-  static async didExtractSigningKey (ipfs, did) {
-    const doc = await Util.resolveDID(ipfs, did)
+  static async didExtractSigningKey (did) {
+    const doc = await Util.resolveDID(did)
     const signingKey = doc.publicKey.find(key => key.id.includes('#signingKey')).publicKeyHex
     return signingKey
   }
 
-  static async resolveDID (ipfs, did) {
-    registerMuportResolver(ipfs)
-    register3idResolver(ipfs)
+  static async resolveDID (did) {
     return resolveDID(did)
   }
 
-  static async didToRootStoreAddress (did, { ipfs, orbitdb }) {
-    const signingKeyCompressed = await Util.didExtractSigningKey(ipfs, did)
+  static async didToRootStoreAddress (did, { orbitdb }) {
+    const signingKeyCompressed = await Util.didExtractSigningKey(did)
 
     const signingKey = Util.uncompressSECP256K1Key(signingKeyCompressed)
     const fingerprint = Util.sha256Multihash(did)

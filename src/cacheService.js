@@ -20,6 +20,7 @@ class CacheService {
     this.app.post('/profileList', this.getProfiles.bind(this))
     this.app.get('/space', this.getSpace.bind(this))
     this.app.get('/list-spaces', this.listSpaces.bind(this))
+    this.app.get('/config', this.getConfig.bind(this))
     this.app.get('/thread', this.getThread.bind(this))
   }
 
@@ -45,6 +46,21 @@ class CacheService {
     }
   }
 
+  async getConfig (req, res, next) {
+    const { address, did } = req.query
+
+    try {
+      const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
+      const cacheConf = await this.cache.read(`config_${rootStoreAddress}`)
+      const conf = cacheConf || await this.pinning.getConfig(rootStoreAddress)
+
+      res.json(conf)
+      if (!cacheConf) this.cache.write(`config_${rootStoreAddress}`, conf)
+    } catch (e) {
+      return errorToResponse(res, e, 'Error: Failed to load config')
+    }
+  }
+
   async getSpace (req, res, next) {
     const { address, did, metadata } = req.query
     const spaceName = req.query.name
@@ -67,7 +83,7 @@ class CacheService {
       const fullName = namesTothreadName(req.query.space, req.query.name)
       const rootMod = req.query.mod
       const members = req.query.members === 'true'
-      address = this.pinning.getThreadAddress(fullName, rootMod, members)
+      address = await this.pinning.getThreadAddress(fullName, rootMod, members)
     }
 
     const cachePosts = await this.cache.read(address)
