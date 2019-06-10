@@ -360,7 +360,7 @@ class TestClient {
         type: 'thread-access',
         threadName: tName,
         members: false,
-        rootMod: THREEID_MOCK.DID,
+        firstModerator: THREEID_MOCK.DID,
         identity: this.identity
       }
     })

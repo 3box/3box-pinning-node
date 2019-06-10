@@ -222,13 +222,13 @@ class Pinning {
     })
   }
 
-  async getThreadAddress (name, rootMod, members) {
+  async getThreadAddress (name, firstModerator, members) {
     return (await this.orbitdb._determineAddress(name, 'feed', {
       accessController: {
         type: 'thread-access',
         threadName: name,
         members,
-        rootMod
+        firstModerator
       }
     }, false)).toString()
   }

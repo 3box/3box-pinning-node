@@ -81,9 +81,9 @@ class CacheService {
     let address = req.query.address
     if (!address) {
       const fullName = namesTothreadName(req.query.space, req.query.name)
-      const rootMod = req.query.mod
+      const firstModerator = req.query.mod
       const members = req.query.members === 'true'
-      address = await this.pinning.getThreadAddress(fullName, rootMod, members)
+      address = await this.pinning.getThreadAddress(fullName, firstModerator, members)
     }
 
     const cachePosts = await this.cache.read(address)
