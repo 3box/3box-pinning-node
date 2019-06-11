@@ -20,6 +20,7 @@ class CacheService {
     this.app.post('/profileList', this.getProfiles.bind(this))
     this.app.get('/space', this.getSpace.bind(this))
     this.app.get('/list-spaces', this.listSpaces.bind(this))
+    this.app.get('/config', this.getConfig.bind(this))
     this.app.get('/thread', this.getThread.bind(this))
   }
 
@@ -45,6 +46,21 @@ class CacheService {
     }
   }
 
+  async getConfig (req, res, next) {
+    const { address, did } = req.query
+
+    try {
+      const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
+      const cacheConf = await this.cache.read(`config_${rootStoreAddress}`)
+      const conf = cacheConf || await this.pinning.getConfig(rootStoreAddress)
+
+      res.json(conf)
+      if (!cacheConf) this.cache.write(`config_${rootStoreAddress}`, conf)
+    } catch (e) {
+      return errorToResponse(res, e, 'Error: Failed to load config')
+    }
+  }
+
   async getSpace (req, res, next) {
     const { address, did, metadata } = req.query
     const spaceName = req.query.name
@@ -62,20 +78,24 @@ class CacheService {
   }
 
   async getThread (req, res, next) {
-    const spaceName = req.query.space
-    const threadName = req.query.name
+    let address = req.query.address
+    if (!address) {
+      const fullName = namesTothreadName(req.query.space, req.query.name)
+      const firstModerator = req.query.mod
+      const members = req.query.members === 'true'
+      address = await this.pinning.getThreadAddress(fullName, firstModerator, members)
+    }
 
-    const fullName = namesTothreadName(spaceName, threadName)
-    const cachePosts = await this.cache.read(fullName)
+    const cachePosts = await this.cache.read(address)
     let posts
     try {
-      posts = cachePosts || await this.pinning.getThread(fullName)
+      posts = cachePosts || await this.pinning.getThread(address)
     } catch (e) {
       res.status(500).send('Error: Failed to load posts')
       return
     }
     res.json(posts)
-    if (!cachePosts) this.cache.write(fullName, posts)
+    if (!cachePosts) this.cache.write(address, posts)
   }
 
   async ethereumToRootStoreAddress (address) {

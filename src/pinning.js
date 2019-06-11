@@ -1,15 +1,33 @@
 const IPFS = require('ipfs')
+const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
+const register3idResolver = require('3id-resolver')
+const registerMuportResolver = require('muport-did-resolver')
 const orbitDBCache = require('orbit-db-cache-redis')
+const {
+  OdbIdentityProvider,
+  LegacyIPFS3BoxAccessController,
+  ThreadAccessController,
+  ModeratorAccessController
+} = require('3box-orbitdb-plugins')
+const Identities = require('orbit-db-identity-provider')
+Identities.addIdentityProvider(OdbIdentityProvider)
+const AccessControllers = require('orbit-db-access-controllers')
+AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
+AccessControllers.addAccessController({ AccessController: ThreadAccessController })
+AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
 const FORTY_FIVE_SECONDS = 45 * 1000
 const NINETY_SECONDS = 2 * FORTY_FIVE_SECONDS
 const PINNING_ROOM = '3box-pinning'
+const rootEntryTypes = {
+  SPACE: 'space'
+}
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
     pubsub: true
@@ -24,6 +42,15 @@ const rejectOnError = (reject, f) => {
       reject(e)
     }
   }
+}
+
+const pinDID = did => {
+  if (!did) return
+  // We resolve the DID in order to pin the ipfs object
+  try {
+    resolveDID(did)
+    // if this throws it's not a DID
+  } catch (e) {}
 }
 
 /**
@@ -44,10 +71,17 @@ class Pinning {
 
   async start () {
     this.ipfs = await this._initIpfs()
+    register3idResolver(this.ipfs)
+    registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
     console.log(ipfsId)
-    const orbitOpts = this.orbitCacheOpts ? { cache: orbitDBCache(this.orbitCacheOpts) } : { }
-    this.orbitdb = new OrbitDB(this.ipfs, this.orbitdbPath, orbitOpts)
+    const orbitOpts = {
+      directory: this.orbitdbPath
+    }
+    if (this.orbitCacheOpts) {
+      orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
+    }
+    this.orbitdb = await OrbitDB.createInstance(this.ipfs, orbitOpts)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
@@ -84,7 +118,7 @@ class Pinning {
             })
 
           const profileFromPubStore = rejectOnError(reject, address => {
-            const profile = this.openDBs[address].db.all()
+            const profile = this.openDBs[address].db.all
             const parsedProfile = {}
 
             Object.entries(profile)
@@ -128,6 +162,31 @@ class Pinning {
     })
   }
 
+  async getConfig (address) {
+    return new Promise((resolve, reject) => {
+      const spacesFromRoot = address => {
+        const config = this.openDBs[address].db
+          .iterator({ limit: -1 })
+          .collect()
+          .reduce((conf, entry) => {
+            const data = entry.payload.value
+            if (data.type === rootEntryTypes.SPACE) {
+              if (!conf.spaces) conf.spaces = {}
+              const name = data.odbAddress.split('.')[2]
+              conf.spaces[name] = {
+                DID: data.DID
+              }
+            }
+            return conf
+          }, {})
+        resolve(config)
+      }
+      // we need to open substores on replicated, otherwise it will break
+      // the auto pinning if the user adds another store to their root store
+      this.openDB(address, spacesFromRoot, this._openSubStores.bind(this))
+    })
+  }
+
   async getSpace (address, name) {
     return new Promise((resolve, reject) => {
       const spaceStoreFromRoot = address => {
@@ -139,7 +198,7 @@ class Pinning {
           })
 
         const pubDataFromSpaceStore = address => {
-          const pubSpace = this.openDBs[address].db.all()
+          const pubSpace = this.openDBs[address].db.all
           const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
             if (key.startsWith('pub_')) {
               const x = pubSpace[key]
@@ -163,16 +222,25 @@ class Pinning {
     })
   }
 
-  async getThread (name) {
-    const address = (await this.orbitdb._determineAddress(name, 'eventlog', { write: ['*'] }, false)).toString()
+  async getThreadAddress (name, firstModerator, members) {
+    return (await this.orbitdb._determineAddress(name, 'feed', {
+      accessController: {
+        type: 'thread-access',
+        threadName: name,
+        members,
+        firstModerator
+      }
+    }, false)).toString()
+  }
+
+  async getThread (address) {
     return new Promise((resolve, reject) => {
       const getThreadData = address => {
         const posts = this.openDBs[address].db
           .iterator({ limit: -1 })
           .collect()
           .map(entry => {
-            let post = entry.payload.value
-            post.postId = entry.hash
+            const post = Object.assign({ postId: entry.hash }, entry.payload.value)
             return post
           })
         resolve(posts)
@@ -188,7 +256,14 @@ class Pinning {
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       const dbPromise = new Promise(async (resolve, reject) => {
-        const db = await this.orbitdb.open(address)
+        const cid = new CID(address.split('/')[2])
+        const opts = {
+          accessController: {
+            type: 'legacy-ipfs-3box',
+            skipManifest: true
+          }
+        }
+        const db = await this.orbitdb.open(address, cid.version === 0 ? opts : {})
         db.events.on('ready', () => {
           resolve(db)
         })
@@ -231,11 +306,12 @@ class Pinning {
       // in this case odbAddress is the rootStoreAddress
       const spaces = await this.listSpaces(odbAddress)
       this.cache.write(`space-list_${odbAddress}`, spaces)
+      const config = await this.getConfig(odbAddress)
+      this.cache.write(`config_${odbAddress}`, config)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
-      const name = odbAddress.split('/')[3]
-      const posts = await this.getThread(name)
-      this.cache.write(name, posts)
+      const posts = await this.getThread(odbAddress)
+      this.cache.write(odbAddress, posts)
     }
   }
 
@@ -252,9 +328,14 @@ class Pinning {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
     })
     uniqueEntries.map(entry => {
-      const odbAddress = entry.payload.value.odbAddress
-      if (odbAddress) {
-        this.openDB(odbAddress, this._sendHasResponse.bind(this), null, address)
+      const data = entry.payload.value
+      if (data.type === rootEntryTypes.SPACE) {
+        // don't open db if the space entry is malformed
+        if (!data.DID || !data.odbAddress) return
+        pinDID(data.DID)
+      }
+      if (data.odbAddress) {
+        this.openDB(data.odbAddress, this._sendHasResponse.bind(this), null, address)
       }
     })
   }
@@ -283,11 +364,7 @@ class Pinning {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
       }
       if (data.did) {
-        // We resolve the DID in order to pin the ipfs object
-        try {
-          resolveDID(this.ipfs, data.did)
-          // if this throws it's not a DID
-        } catch (e) {}
+        pinDID(data.did)
       }
     }
   }

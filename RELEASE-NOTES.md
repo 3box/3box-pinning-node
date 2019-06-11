@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.5.0 - 2019-06-11
+* feat: update orbitdb and ipfs
+* feat: add 3ID
+* feat: add support for moderator threads, and thread api changes
+* feat: add getConfig api endpoint
+
 ## v1.4.2 - 2019-05-06
 * Fix: Use correct timestamp format.
 
