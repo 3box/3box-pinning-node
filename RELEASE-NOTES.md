@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.4.2 - 2019-05-06
+* Fix: Use correct timestamp format.
+
 ## v1.4.1 - 2019-04-27
 * Fix/Performance: Cache liveness and fix, rewrite cache on change instead of invalidate
 
