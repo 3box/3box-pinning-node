@@ -171,7 +171,7 @@ class Pinning {
           .reduce((conf, entry) => {
             const data = entry.payload.value
             if (data.type === rootEntryTypes.SPACE) {
-              if (!conf.space) conf.spaces = {}
+              if (!conf.spaces) conf.spaces = {}
               const name = data.odbAddress.split('.')[2]
               conf.spaces[name] = {
                 DID: data.DID
