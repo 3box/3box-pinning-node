@@ -42,12 +42,14 @@ const cache = {
   write: jest.fn()
 }
 
+const MOCK_THREAD_ADDRESS = '/orbitdb/zdpuAzRJWs82a6B99659TFumcF5PAKA5pwzkwA3dYQFuWNQJD/3box.thread.a.a'
+
 const pinning = {
   getProfile: jest.fn(() => PROFILE_1),
   getSpace: jest.fn(() => SPACE_1),
   listSpaces: jest.fn(() => SPACES_1),
   getThread: jest.fn(() => THREADS_1),
-  getThreadAddress: jest.fn(() => '/orbitdb/Qm34534/name')
+  getThreadAddress: jest.fn(() => MOCK_THREAD_ADDRESS)
 }
 
 describe('CacheService', () => {
@@ -170,7 +172,7 @@ describe('CacheService', () => {
       await cs.getThread(req, res)
 
       expect(cs.cache.read).toHaveBeenCalledTimes(1)
-      expect(cs.cache.read).toHaveBeenCalledWith('/orbitdb/Qm34534/name')
+      expect(cs.cache.read).toHaveBeenCalledWith(MOCK_THREAD_ADDRESS)
       expect(cs.pinning.getThread).toHaveBeenCalledTimes(0)
       expect(res.json).toHaveBeenCalledTimes(1)
       expect(res.json).toHaveBeenCalledWith(THREADS_1)
@@ -184,15 +186,15 @@ describe('CacheService', () => {
       await cs.getThread(req, res)
 
       expect(cs.cache.read).toHaveBeenCalledTimes(1)
-      expect(cs.cache.read).toHaveBeenCalledWith('/orbitdb/Qm34534/name')
+      expect(cs.cache.read).toHaveBeenCalledWith(MOCK_THREAD_ADDRESS)
       expect(cs.pinning.getThreadAddress).toHaveBeenCalledTimes(1)
       expect(cs.pinning.getThreadAddress).toHaveBeenCalledWith('3box.thread.space1.thread1', 'did:3:asdfe', false)
       expect(cs.pinning.getThread).toHaveBeenCalledTimes(1)
-      expect(cs.pinning.getThread).toHaveBeenCalledWith('/orbitdb/Qm34534/name')
+      expect(cs.pinning.getThread).toHaveBeenCalledWith(MOCK_THREAD_ADDRESS)
       expect(res.json).toHaveBeenCalledTimes(1)
       expect(res.json).toHaveBeenCalledWith(THREADS_1)
       expect(cs.cache.write).toHaveBeenCalledTimes(1)
-      expect(cs.cache.write).toHaveBeenCalledWith('/orbitdb/Qm34534/name', THREADS_1)
+      expect(cs.cache.write).toHaveBeenCalledWith(MOCK_THREAD_ADDRESS, THREADS_1)
     })
   })
 
