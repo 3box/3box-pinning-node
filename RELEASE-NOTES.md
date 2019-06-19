@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.1 - 2019-06-19
+* feat: getProfile with 3ID
+* fix: getThread don't hang, return error when missing or invalid args
+
 ## v1.5.0 - 2019-06-11
 * feat: update orbitdb and ipfs
 * feat: add 3ID
