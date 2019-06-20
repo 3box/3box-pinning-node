@@ -2,6 +2,7 @@ const express = require('express')
 const axios = require('axios')
 const Util = require('./util')
 const { InvalidInputError, ProfileNotFound } = require('./errors')
+const OrbitDBAddress = require('orbit-db/src/orbit-db-address')
 
 const namesTothreadName = (spaceName, threadName) => `3box.thread.${spaceName}.${threadName}`
 
@@ -78,12 +79,21 @@ class CacheService {
   }
 
   async getThread (req, res, next) {
-    let address = req.query.address
+    let { address, space, name, mod, members } = req.query
+
+    const usingConfig = (space && name && mod && members)
+
+    if (!usingConfig && !address) {
+      return errorToResponse(res, { statusCode: 404, message: 'Must pass address parameter, or all of space, name, mod, and members parameters' })
+    }
+
     if (!address) {
-      const fullName = namesTothreadName(req.query.space, req.query.name)
-      const firstModerator = req.query.mod
-      const members = req.query.members === 'true'
-      address = await this.pinning.getThreadAddress(fullName, firstModerator, members)
+      const fullName = namesTothreadName(space, name)
+      address = await this.pinning.getThreadAddress(fullName, mod, members === 'true')
+    }
+
+    if (!OrbitDBAddress.isValid(address)) {
+      return errorToResponse(res, { statusCode: 404, message: 'Invalid orbitdb address given or derived' })
     }
 
     const cachePosts = await this.cache.read(address)
