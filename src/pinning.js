@@ -26,7 +26,8 @@ const FORTY_FIVE_SECONDS = 45 * 1000
 const NINETY_SECONDS = 2 * FORTY_FIVE_SECONDS
 const PINNING_ROOM = '3box-pinning'
 const rootEntryTypes = {
-  SPACE: 'space'
+  SPACE: 'space',
+  ADDRESS_LINK: 'address-link'
 }
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
@@ -164,21 +165,26 @@ class Pinning {
 
   async getConfig (address) {
     return new Promise((resolve, reject) => {
-      const spacesFromRoot = address => {
-        const config = this.openDBs[address].db
+      const spacesFromRoot = async address => {
+        const config = await this.openDBs[address].db
           .iterator({ limit: -1 })
           .collect()
-          .reduce((conf, entry) => {
-            const data = entry.payload.value
-            if (data.type === rootEntryTypes.SPACE) {
+          .reduce(async (conf, entry) => {
+            conf = await conf
+            const value = entry.payload.value
+            if (value.type === rootEntryTypes.SPACE) {
               if (!conf.spaces) conf.spaces = {}
-              const name = data.odbAddress.split('.')[2]
+              const name = value.odbAddress.split('.')[2]
               conf.spaces[name] = {
-                DID: data.DID
+                DID: value.DID
               }
+            } else if (value.type === rootEntryTypes.ADDRESS_LINK) {
+              if (!conf.links) conf.links = []
+              const obj = (await this.ipfs.dag.get(value.data)).value
+              conf.links.push(obj)
             }
             return conf
-          }, {})
+          }, Promise.resolve({}))
         resolve(config)
       }
       // we need to open substores on replicated, otherwise it will break
