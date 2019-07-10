@@ -338,6 +338,16 @@ class Pinning {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this), null, address)
       }
     })
+
+    this._pinLinkAddressProofs(address)
+  }
+
+  _pinLinkAddressProofs (address) {
+    // assuming address is root store
+    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
+    // Filter for address-links, get CID, and get to pin it
+    entries.filter(e => e.payload.value.type === 'address-link')
+      .map(e => { this.ipfs.dag.get(e.payload.value.data) })
   }
 
   _openSubStoresAndSendHasResponse (address) {
