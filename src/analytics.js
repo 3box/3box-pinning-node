@@ -1,8 +1,8 @@
 const SegmentAnalytics = require('analytics-node')
 
 class Analytics {
-  constructor (writeKey, active = true) {
-    this.client = writeKey && active ? new SegmentAnalytics(writeKey) : null
+  constructor (client) {
+    this.client = client
   }
 
   _track (data = {}) {
@@ -14,45 +14,26 @@ class Analytics {
       return false
     }
   }
+}
 
-  trackOpenDB (address, duration) {
-    let data = {}
-    data.event = 'open_db'
-    data.properties = { address: address, duration: duration }
-    this._track(data)
-  }
-
-  trackListSpaces (address) {
-    let data = {}
-    data.event = 'list_spaces'
-    data.properties = { address: address }
-    this._track(data)
-  }
-
-  trackGetThread (address) {
-    let data = {}
-    data.event = 'get_thread'
-    data.properties = { address: address }
-    this._track(data)
-  }
-
-  trackGetSpace (address, name, spaceExisted) {
-    let data = {}
-    data.event = 'get_space'
-    data.properties = { address: address, name: name, profile_existed: spaceExisted }
-    this._track(data)
-  }
-
-  trackGetProfile (address, profileExisted) {
-    let data = {}
-    data.event = 'get_profile'
-    data.properties = { address: address, profile_existed: profileExisted }
-    this._track(data)
-  }
+class AnalyticsNode extends Analytics {
+  // trackOpenDB (address, duration) {
+  //   let data = {}
+  //   data.event = 'open_db'
+  //   data.properties = { address: address, duration: duration }
+  //   this._track(data)
+  // }
 
   trackPinDB (odbAddress) {
     let data = {}
     data.event = 'pin_db'
+    data.properties = { odb_address: odbAddress }
+    this._track(data)
+  }
+
+  trackSyncDB (odbAddress) {
+    let data = {}
+    data.event = 'sync_db'
     data.properties = { odb_address: odbAddress }
     this._track(data)
   }
@@ -67,5 +48,85 @@ class Analytics {
     }
     this._track(data)
   }
+
+  trackSpaceUpdate (address, spaceName, rootAddress) {
+    let data = {}
+    data.event = 'space_update'
+    data.properties = { address, space: spaceName, root_address: rootAddress }
+    this._track(data)
+  }
+
+  trackPublicUpdate (address, rootAddress) {
+    let data = {}
+    data.event = 'public_update'
+    data.properties = { address, root_address: rootAddress }
+    this._track(data)
+  }
+
+  // TODO differentiate types of updates
+  trackRootUpdate (address) {
+    let data = {}
+    data.event = 'root_update'
+    data.properties = { address }
+    this._track(data)
+  }
+
+  trackThreadUpdate (address) {
+    let data = {}
+    data.event = 'thread_update'
+    data.properties = { address }
+    this._track(data)
+  }
 }
-module.exports = Analytics
+
+class AnalyticsAPI extends Analytics {
+  trackListSpaces (address, status) {
+    let data = {}
+    data.event = 'api_list_spaces'
+    data.properties = { address: address, status }
+    this._track(data)
+  }
+
+  trackGetConfig (address, status) {
+    let data = {}
+    data.event = 'api_get_config'
+    data.properties = { address: address, status }
+    this._track(data)
+  }
+
+  trackGetThread (address, status) {
+    let data = {}
+    data.event = 'api_get_thread'
+    data.properties = { address: address, status }
+    this._track(data)
+  }
+
+  trackGetSpace (address, name, spaceExisted, status) {
+    let data = {}
+    data.event = 'api_get_space'
+    data.properties = { address: address, name: name, profile_existed: spaceExisted, status }
+    this._track(data)
+  }
+
+  trackGetProfile (address, profileExisted, status) {
+    let data = {}
+    data.event = 'api_get_profile'
+    data.properties = { address: address, profile_existed: profileExisted, status }
+    this._track(data)
+  }
+
+  trackGetProfiles (status) {
+    let data = {}
+    data.event = 'api_get_profiles'
+    data.properties = { status }
+    this._track(data)
+  }
+}
+
+module.exports = (writeKey, active = true) => {
+  const client = writeKey && active ? new SegmentAnalytics(writeKey) : null
+  return {
+    api: new AnalyticsAPI(client),
+    node: new AnalyticsNode(client)
+  }
+}
