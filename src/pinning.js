@@ -115,6 +115,7 @@ class Pinning {
             .iterator({ limit: -1 })
             .collect()
             .find(entry => {
+              if (!entry.payload.value.odbAddress) return false
               return entry.payload.value.odbAddress.split('.')[1] === 'public'
             })
 
@@ -150,6 +151,7 @@ class Pinning {
           .iterator({ limit: -1 })
           .collect()
           .reduce((list, entry) => {
+            if (!entry.payload.value.odbAddress) return list
             const name = entry.payload.value.odbAddress.split('.')[2]
             if (name) list.push(name)
             return list
@@ -200,6 +202,7 @@ class Pinning {
           .iterator({ limit: -1 })
           .collect()
           .find(entry => {
+            if (!entry.payload.value.odbAddress) return false
             return entry.payload.value.odbAddress.split('.')[2] === name
           })
 
@@ -329,7 +332,7 @@ class Pinning {
 
   _openSubStores (address) {
     if (this.runCacheServiceOnly) { return }
-    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
+    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect().filter(e => Boolean(e.payload.value.odbAddress))
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
     })
