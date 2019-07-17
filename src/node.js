@@ -6,7 +6,7 @@ const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const { RedisCache, NullCache } = require('./cache')
 const CacheService = require('./cacheService')
-const Analytics = require('./analytics')
+const analytics = require('./analytics')
 
 const env = process.env.NODE_ENV || 'development'
 require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
@@ -29,11 +29,11 @@ const runCacheService = argv.runCacheService !== 'false'
 
 const runCacheServiceOnly = CACHE_SERVICE_ONLY === 'true'
 
-const analyticsClient = new Analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
+const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 
 function sendInfraMetrics () {
-  analyticsClient.trackInfraMetrics()
+  analyticsClient.node.trackInfraMetrics()
 }
 
 function prepareIPFSConfig () {
@@ -59,11 +59,11 @@ function prepareIPFSConfig () {
 async function start (runCacheService, runCacheServiceOnly) {
   const cache = REDIS_PATH && runCacheService ? new RedisCache({ host: REDIS_PATH }, DAYS15) : new NullCache()
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(cache, ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, runCacheServiceOnly)
+  const pinning = new Pinning(cache, ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, runCacheServiceOnly)
   await pinning.start()
   setInterval(sendInfraMetrics, 1800000)
   if (runCacheService) {
-    const cacheService = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
+    const cacheService = new CacheService(cache, pinning, analyticsClient.api, ADDRESS_SERVER_URL)
     cacheService.start()
   }
 }

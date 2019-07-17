@@ -133,7 +133,6 @@ class Pinning {
           })
 
           this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-          this.analytics.trackGetProfile(address, !!profileFromPubStore)
         })
         // we need to open substores on replicated, otherwise it will break
         // the auto pinning if the user adds another store to their root store
@@ -161,7 +160,6 @@ class Pinning {
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
       this.openDB(address, spacesFromRoot, this._openSubStores.bind(this))
-      this.analytics.trackListSpaces(address)
     })
   }
 
@@ -223,7 +221,6 @@ class Pinning {
         } else {
           resolve({})
         }
-        this.analytics.trackGetSpace(address, !!pubDataFromSpaceStore)
       }
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
@@ -255,7 +252,6 @@ class Pinning {
         resolve(posts)
       }
       this.openDB(address, getThreadData)
-      this.analytics.trackGetThread(address)
     })
   }
 
@@ -298,7 +294,6 @@ class Pinning {
       responseFn(address)
     }
     tick.stop()
-    this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
   }
 
   async rewriteDBCache (odbAddress, rootStoreAddress) {
@@ -307,20 +302,24 @@ class Pinning {
       const spaceName = split[2]
       const space = await this.getSpace(rootStoreAddress, spaceName)
       this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
+      this.analytics.trackSpaceUpdate(odbAddress, spaceName, rootStoreAddress)
     } else if (split[1] === 'public') {
       // the profile is only saved under the rootStoreAddress as key
       const profile = await this.getProfile(rootStoreAddress)
       this.cache.write(rootStoreAddress, profile)
+      this.analytics.trackPublicUpdate(odbAddress, rootStoreAddress)
     } else if (split[1] === 'root') {
       // in this case odbAddress is the rootStoreAddress
       const spaces = await this.listSpaces(odbAddress)
       this.cache.write(`space-list_${odbAddress}`, spaces)
       const config = await this.getConfig(odbAddress)
       this.cache.write(`config_${odbAddress}`, config)
+      this.analytics.trackRootUpdate(odbAddress)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
       const posts = await this.getThread(odbAddress)
       this.cache.write(odbAddress, posts)
+      this.analytics.trackThreadUpdate(odbAddress)
     }
   }
 
@@ -381,6 +380,7 @@ class Pinning {
         this.analytics.trackPinDB(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
+        this.analytics.trackSyncDB(data.odbAddress)
       }
       if (data.did) {
         pinDID(data.did)
