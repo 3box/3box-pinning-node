@@ -52,6 +52,15 @@ const pinning = {
   getThreadAddress: jest.fn(() => MOCK_THREAD_ADDRESS)
 }
 
+const analyticsMock = {
+  trackListSpaces: jest.fn(),
+  trackGetConfig: jest.fn(),
+  trackGetThread: jest.fn(),
+  trackGetSpace: jest.fn(),
+  trackGetProfile: jest.fn(),
+  trackGetProfiles: jest.fn()
+}
+
 describe('CacheService', () => {
   let cs
 
@@ -61,7 +70,7 @@ describe('CacheService', () => {
   })
 
   it('constructor works as expected', async () => {
-    cs = new CacheService(cache, pinning, ADDRESS_SERVER_URL)
+    cs = new CacheService(cache, pinning, analyticsMock, ADDRESS_SERVER_URL)
     expect(cs.app.use).toHaveBeenCalledTimes(2)
     expect(cs.app.get).toHaveBeenCalledTimes(5)
     expect(cs.app.post).toHaveBeenCalledTimes(1)

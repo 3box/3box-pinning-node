@@ -26,7 +26,8 @@ const FORTY_FIVE_SECONDS = 45 * 1000
 const NINETY_SECONDS = 2 * FORTY_FIVE_SECONDS
 const PINNING_ROOM = '3box-pinning'
 const rootEntryTypes = {
-  SPACE: 'space'
+  SPACE: 'space',
+  ADDRESS_LINK: 'address-link'
 }
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
@@ -114,6 +115,7 @@ class Pinning {
             .iterator({ limit: -1 })
             .collect()
             .find(entry => {
+              if (!entry.payload.value.odbAddress) return false
               return entry.payload.value.odbAddress.split('.')[1] === 'public'
             })
 
@@ -131,7 +133,6 @@ class Pinning {
           })
 
           this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-          this.analytics.trackGetProfile(address, !!profileFromPubStore)
         })
         // we need to open substores on replicated, otherwise it will break
         // the auto pinning if the user adds another store to their root store
@@ -149,6 +150,7 @@ class Pinning {
           .iterator({ limit: -1 })
           .collect()
           .reduce((list, entry) => {
+            if (!entry.payload.value.odbAddress) return list
             const name = entry.payload.value.odbAddress.split('.')[2]
             if (name) list.push(name)
             return list
@@ -158,27 +160,31 @@ class Pinning {
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
       this.openDB(address, spacesFromRoot, this._openSubStores.bind(this))
-      this.analytics.trackListSpaces(address)
     })
   }
 
   async getConfig (address) {
     return new Promise((resolve, reject) => {
-      const spacesFromRoot = address => {
-        const config = this.openDBs[address].db
+      const spacesFromRoot = async address => {
+        const config = await this.openDBs[address].db
           .iterator({ limit: -1 })
           .collect()
-          .reduce((conf, entry) => {
-            const data = entry.payload.value
-            if (data.type === rootEntryTypes.SPACE) {
+          .reduce(async (conf, entry) => {
+            conf = await conf
+            const value = entry.payload.value
+            if (value.type === rootEntryTypes.SPACE) {
               if (!conf.spaces) conf.spaces = {}
-              const name = data.odbAddress.split('.')[2]
+              const name = value.odbAddress.split('.')[2]
               conf.spaces[name] = {
-                DID: data.DID
+                DID: value.DID
               }
+            } else if (value.type === rootEntryTypes.ADDRESS_LINK) {
+              if (!conf.links) conf.links = []
+              const obj = (await this.ipfs.dag.get(value.data)).value
+              conf.links.push(obj)
             }
             return conf
-          }, {})
+          }, Promise.resolve({}))
         resolve(config)
       }
       // we need to open substores on replicated, otherwise it will break
@@ -194,6 +200,7 @@ class Pinning {
           .iterator({ limit: -1 })
           .collect()
           .find(entry => {
+            if (!entry.payload.value.odbAddress) return false
             return entry.payload.value.odbAddress.split('.')[2] === name
           })
 
@@ -214,7 +221,6 @@ class Pinning {
         } else {
           resolve({})
         }
-        this.analytics.trackGetSpace(address, !!pubDataFromSpaceStore)
       }
       // we need to open substores on replicated, otherwise it will break
       // the auto pinning if the user adds another store to their root store
@@ -246,7 +252,6 @@ class Pinning {
         resolve(posts)
       }
       this.openDB(address, getThreadData)
-      this.analytics.trackGetThread(address)
     })
   }
 
@@ -289,7 +294,6 @@ class Pinning {
       responseFn(address)
     }
     tick.stop()
-    this.analytics.trackOpenDB(address, timer.timers.openDB.duration())
   }
 
   async rewriteDBCache (odbAddress, rootStoreAddress) {
@@ -298,20 +302,24 @@ class Pinning {
       const spaceName = split[2]
       const space = await this.getSpace(rootStoreAddress, spaceName)
       this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
+      this.analytics.trackSpaceUpdate(odbAddress, spaceName, rootStoreAddress)
     } else if (split[1] === 'public') {
       // the profile is only saved under the rootStoreAddress as key
       const profile = await this.getProfile(rootStoreAddress)
       this.cache.write(rootStoreAddress, profile)
+      this.analytics.trackPublicUpdate(odbAddress, rootStoreAddress)
     } else if (split[1] === 'root') {
       // in this case odbAddress is the rootStoreAddress
       const spaces = await this.listSpaces(odbAddress)
       this.cache.write(`space-list_${odbAddress}`, spaces)
       const config = await this.getConfig(odbAddress)
       this.cache.write(`config_${odbAddress}`, config)
+      this.analytics.trackRootUpdate(odbAddress)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
       const posts = await this.getThread(odbAddress)
       this.cache.write(odbAddress, posts)
+      this.analytics.trackThreadUpdate(odbAddress)
     }
   }
 
@@ -323,7 +331,7 @@ class Pinning {
 
   _openSubStores (address) {
     if (this.runCacheServiceOnly) { return }
-    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
+    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect().filter(e => Boolean(e.payload.value.odbAddress))
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
     })
@@ -338,6 +346,16 @@ class Pinning {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this), null, address)
       }
     })
+
+    this._pinLinkAddressProofs(address)
+  }
+
+  _pinLinkAddressProofs (address) {
+    // assuming address is root store
+    const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
+    // Filter for address-links, get CID, and get to pin it
+    entries.filter(e => e.payload.value.type === 'address-link')
+      .map(e => { this.ipfs.dag.get(e.payload.value.data) })
   }
 
   _openSubStoresAndSendHasResponse (address) {
@@ -362,6 +380,7 @@ class Pinning {
         this.analytics.trackPinDB(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
+        this.analytics.trackSyncDB(data.odbAddress)
       }
       if (data.did) {
         pinDID(data.did)

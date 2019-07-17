@@ -7,10 +7,11 @@ const OrbitDBAddress = require('orbit-db/src/orbit-db-address')
 const namesTothreadName = (spaceName, threadName) => `3box.thread.${spaceName}.${threadName}`
 
 class CacheService {
-  constructor (cache, pinning, addressServer) {
+  constructor (cache, pinning, analytics, addressServer) {
     this.cache = cache
     this.pinning = pinning
     this.addressServer = addressServer
+    this.analytics = analytics
     this.app = express()
     this.app.use(express.json())
     this.app.use((req, res, next) => {
@@ -42,7 +43,9 @@ class CacheService {
 
       res.json(spaces)
       if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
+      this.analytics.trackListSpaces(address, 200)
     } catch (e) {
+      this.analytics.trackListSpaces(address, 500)
       return errorToResponse(res, e, 'Error: Failed to load spaces')
     }
   }
@@ -57,7 +60,9 @@ class CacheService {
 
       res.json(conf)
       if (!cacheConf) this.cache.write(`config_${rootStoreAddress}`, conf)
+      this.analytics.trackGetConfig(address, 200)
     } catch (e) {
+      this.analytics.trackGetConfig(address, 500)
       return errorToResponse(res, e, 'Error: Failed to load config')
     }
   }
@@ -65,7 +70,7 @@ class CacheService {
   async getSpace (req, res, next) {
     const { address, did, metadata } = req.query
     const spaceName = req.query.name
-
+    let spaceExisted
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
       const cacheSpace = await this.cache.read(`${rootStoreAddress}_${spaceName}`)
@@ -73,7 +78,10 @@ class CacheService {
 
       res.json(this._mungeSpace(space, metadata))
       if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
+      spaceExisted = Object.entries(space).length !== 0
+      this.analytics.trackGetSpace(address, spaceName, spaceExisted, 200)
     } catch (e) {
+      this.analytics.trackGetSpace(address, spaceName, spaceExisted, 500)
       return errorToResponse(res, e, 'Error: Failed to load space')
     }
   }
@@ -84,6 +92,7 @@ class CacheService {
     const usingConfig = (space && name && mod && members)
 
     if (!usingConfig && !address) {
+      this.analytics.trackGetThread(null, 404)
       return errorToResponse(res, { statusCode: 404, message: 'Must pass address parameter, or all of space, name, mod, and members parameters' })
     }
 
@@ -93,6 +102,7 @@ class CacheService {
     }
 
     if (!OrbitDBAddress.isValid(address)) {
+      this.analytics.trackGetThread(address, 404)
       return errorToResponse(res, { statusCode: 404, message: 'Invalid orbitdb address given or derived' })
     }
 
@@ -101,11 +111,13 @@ class CacheService {
     try {
       posts = cachePosts || await this.pinning.getThread(address)
     } catch (e) {
+      this.analytics.trackGetThread(address, 500)
       res.status(500).send('Error: Failed to load posts')
       return
     }
     res.json(posts)
     if (!cachePosts) this.cache.write(address, posts)
+    this.analytics.trackGetThread(address, 200)
   }
 
   async ethereumToRootStoreAddress (address) {
@@ -203,6 +215,7 @@ class CacheService {
 
   async getProfile (req, res, next) {
     const { address, did, metadata } = req.query
+    let profileExisted
 
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
@@ -214,7 +227,10 @@ class CacheService {
       res.json(this._mungeProfile(profile, metadata))
 
       if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
+      profileExisted = Object.entries(profile).length !== 0
+      this.analytics.trackGetProfile(address, profileExisted, 200)
     } catch (e) {
+      this.analytics.trackGetProfile(address, false, 500)
       return errorToResponse(res, e, 'Error: Failed to load profile')
     }
   }
@@ -226,6 +242,7 @@ class CacheService {
     const { metadata, addressList, didList } = body
 
     if (!addressList && !didList) {
+      this.analytics.trackGetProfiles(400)
       return res.status(400).send('Error: AddressList not given')
     }
 
@@ -254,6 +271,7 @@ class CacheService {
     }, {})
 
     res.json(parsed)
+    this.analytics.trackGetProfiles(200)
   }
 }
 

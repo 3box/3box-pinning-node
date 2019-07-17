@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.6.0 - 2019-07-12
+* feat: pin address-link entries from root-store
+* feat: getConfig now returns address-links
+
 ## v1.5.1 - 2019-06-19
 * feat: getProfile with 3ID
 * fix: getThread don't hang, return error when missing or invalid args
