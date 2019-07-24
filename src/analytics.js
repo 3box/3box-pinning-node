@@ -1,4 +1,9 @@
 const SegmentAnalytics = require('analytics-node')
+const Url = require('url-parse')
+const sha256 = require('js-sha256').sha256
+
+const hash = str => str === null ? null : Buffer.from(sha256.digest(str)).toString('hex')
+const domain = str => new Url(str).hostname
 
 class Analytics {
   constructor (client) {
@@ -80,45 +85,45 @@ class AnalyticsNode extends Analytics {
 }
 
 class AnalyticsAPI extends Analytics {
-  trackListSpaces (address, status) {
+  trackListSpaces (address, status, origin) {
     let data = {}
     data.event = 'api_list_spaces'
-    data.properties = { address: address, status }
+    data.properties = { address: address, status, origin: domain(origin) }
     this._track(data)
   }
 
-  trackGetConfig (address, status) {
+  trackGetConfig (address, status, origin) {
     let data = {}
     data.event = 'api_get_config'
-    data.properties = { address: address, status }
+    data.properties = { address: address, status, origin: domain(origin) }
     this._track(data)
   }
 
-  trackGetThread (address, status) {
+  trackGetThread (address, status, origin) {
     let data = {}
     data.event = 'api_get_thread'
-    data.properties = { address: address, status }
+    data.properties = { address: address, status, origin: domain(origin) }
     this._track(data)
   }
 
-  trackGetSpace (address, name, spaceExisted, status) {
+  trackGetSpace (address, name, spaceExisted, status, origin) {
     let data = {}
     data.event = 'api_get_space'
-    data.properties = { address: address, name: name, profile_existed: spaceExisted, status }
+    data.properties = { address: address, name: name, profile_existed: spaceExisted, status, origin: domain(origin) }
     this._track(data)
   }
 
-  trackGetProfile (address, profileExisted, status) {
+  trackGetProfile (address, profileExisted, status, origin) {
     let data = {}
     data.event = 'api_get_profile'
-    data.properties = { address: address, profile_existed: profileExisted, status }
+    data.properties = { address: address, profile_existed: profileExisted, status, origin: domain(origin) }
     this._track(data)
   }
 
-  trackGetProfiles (status) {
+  trackGetProfiles (status, origin) {
     let data = {}
     data.event = 'api_get_profiles'
-    data.properties = { status }
+    data.properties = { status, origin: domain(origin) }
     this._track(data)
   }
 }
