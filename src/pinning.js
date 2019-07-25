@@ -289,12 +289,14 @@ class Pinning {
 
       root = address.split('.')[1] === 'root' ? address : rootStoreAddress
       did = root ? await this.rootStoreToDID(root) : null
-      if (analyticsFn) analyticsFn(did)
+      if (analyticsFn && did) analyticsFn(did)
 
-      // TODO Problem here is first open (root) did set to null then replays it while open
-
-      this.openDBs[address].db.events.on('replicated', () => {
+      this.openDBs[address].db.events.on('replicated', async () => {
         if (onReplicatedFn) onReplicatedFn(address)
+        if (!did) {
+          did = root ? await this.rootStoreToDID(root) : null
+          if (analyticsFn && did) analyticsFn(did)
+        }
         this.rewriteDBCache(address, rootStoreAddress, did)
       })
     } else {
