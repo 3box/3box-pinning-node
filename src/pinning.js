@@ -289,13 +289,13 @@ class Pinning {
 
       root = address.split('.')[1] === 'root' ? address : rootStoreAddress
       did = root ? await this.rootStoreToDID(root) : null
-      if (analyticsFn && did) analyticsFn(did)
+      if (analyticsFn && did) analyticsFn(did, false)
 
       this.openDBs[address].db.events.on('replicated', async () => {
         if (onReplicatedFn) onReplicatedFn(address)
         if (!did) {
           did = root ? await this.rootStoreToDID(root) : null
-          if (analyticsFn && did) analyticsFn(did)
+          if (analyticsFn && did) analyticsFn(did, true)
         }
         this.rewriteDBCache(address, rootStoreAddress, did)
       })
@@ -305,7 +305,7 @@ class Pinning {
       if (analyticsFn) {
         root = address.split('.')[1] === 'root' ? address : rootStoreAddress
         did = root ? await this.rootStoreToDID(root) : null
-        analyticsFn(did)
+        analyticsFn(did, false)
       }
     }
     tick.stop()

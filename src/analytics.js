@@ -29,10 +29,10 @@ class AnalyticsNode extends Analytics {
   //   this._track(data)
   // }
 
-  trackPinDB (did) {
+  trackPinDB (did, newAccount) {
     let data = {}
     data.event = 'pin_db'
-    data.properties = { did_hash: hash(did) }
+    data.properties = { did_hash: hash(did), new_account: newAccount }
     this._track(data)
   }
 
