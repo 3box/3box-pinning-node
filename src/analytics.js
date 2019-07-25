@@ -68,6 +68,13 @@ class AnalyticsNode extends Analytics {
     this._track(data)
   }
 
+  trackPrivateUpdate (address, did) {
+    let data = {}
+    data.event = 'private_update'
+    data.properties = { address, did_hash: hash(did) }
+    this._track(data)
+  }
+
   // TODO differentiate types of updates
   trackRootUpdate (did) {
     let data = {}
@@ -76,10 +83,10 @@ class AnalyticsNode extends Analytics {
     this._track(data)
   }
 
-  trackThreadUpdate (address) {
+  trackThreadUpdate (address, space, name) {
     let data = {}
     data.event = 'thread_update'
-    data.properties = { address }
+    data.properties = { address, space, name }
     this._track(data)
   }
 }

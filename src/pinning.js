@@ -356,7 +356,11 @@ class Pinning {
       // thread cache is stored with the name of the DB
       const posts = await this.getThread(odbAddress)
       this.cache.write(odbAddress, posts)
-      this.analytics.trackThreadUpdate(odbAddress)
+      const threadName = split[2]
+      const threadSpace = split[3]
+      this.analytics.trackThreadUpdate(odbAddress, threadSpace, threadName)
+    } else if (split[1] === 'private') {
+      this.analytics.trackPrivateUpdate(odbAddress, did)
     }
   }
 
