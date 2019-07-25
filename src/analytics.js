@@ -29,17 +29,17 @@ class AnalyticsNode extends Analytics {
   //   this._track(data)
   // }
 
-  trackPinDB (odbAddress) {
+  trackPinDB (did) {
     let data = {}
     data.event = 'pin_db'
-    data.properties = { odb_address: odbAddress }
+    data.properties = { did_hash: hash(did) }
     this._track(data)
   }
 
   trackSyncDB (odbAddress) {
     let data = {}
     data.event = 'sync_db'
-    data.properties = { odb_address: odbAddress }
+    data.properties = { address: odbAddress }
     this._track(data)
   }
 
@@ -54,25 +54,25 @@ class AnalyticsNode extends Analytics {
     this._track(data)
   }
 
-  trackSpaceUpdate (address, spaceName, rootAddress) {
+  trackSpaceUpdate (address, spaceName, did) {
     let data = {}
     data.event = 'space_update'
-    data.properties = { address, space: spaceName, root_address: rootAddress }
+    data.properties = { address, space: spaceName, did_hash: hash(did) }
     this._track(data)
   }
 
-  trackPublicUpdate (address, rootAddress) {
+  trackPublicUpdate (address, did) {
     let data = {}
     data.event = 'public_update'
-    data.properties = { address, root_address: rootAddress }
+    data.properties = { address, did_hash: hash(did) }
     this._track(data)
   }
 
   // TODO differentiate types of updates
-  trackRootUpdate (address) {
+  trackRootUpdate (did) {
     let data = {}
     data.event = 'root_update'
-    data.properties = { address }
+    data.properties = { did_hash: hash(did) }
     this._track(data)
   }
 
