@@ -10,9 +10,9 @@ class Analytics {
     this.client = client
   }
 
-  _track (data = {}) {
+  _track (data = {}, id) {
     if (this.client) {
-      data.anonymousId = '3box'
+      data.anonymousId = id || '3box'
       data.properties.time = Date.now()
       return this.client.track(data)
     } else {
@@ -32,8 +32,16 @@ class AnalyticsNode extends Analytics {
   trackPinDB (did, newAccount) {
     let data = {}
     data.event = 'pin_db'
-    data.properties = { did_hash: hash(did), new_account: newAccount }
-    this._track(data)
+    data.properties = { new_account: newAccount }
+    this._track(data, hash(did))
+  }
+
+  // backwards compatible, pindb for dbs with address links not in rootstore
+  trackPinDBAddress (address) {
+    let data = {}
+    data.event = 'pin_db_address'
+    data.properties = { address_hash: hash(address) }
+    this._track(data, hash(address))
   }
 
   trackSyncDB (odbAddress) {
@@ -57,30 +65,38 @@ class AnalyticsNode extends Analytics {
   trackSpaceUpdate (address, spaceName, did) {
     let data = {}
     data.event = 'space_update'
-    data.properties = { address, space: spaceName, did_hash: hash(did) }
-    this._track(data)
+    data.properties = { address, space: spaceName }
+    this._track(data, hash(did))
+    this.trackSpaceUpdateByApp(address, spaceName) // Temporary, to get uniques on spaceNames
+  }
+
+  trackSpaceUpdateByApp (address, spaceName) {
+    let data = {}
+    data.event = 'space_update_app'
+    data.properties = { address, space: spaceName }
+    this._track(data, spaceName)
   }
 
   trackPublicUpdate (address, did) {
     let data = {}
     data.event = 'public_update'
-    data.properties = { address, did_hash: hash(did) }
-    this._track(data)
+    data.properties = { address }
+    this._track(data, hash(did))
   }
 
   trackPrivateUpdate (address, did) {
     let data = {}
     data.event = 'private_update'
-    data.properties = { address, did_hash: hash(did) }
-    this._track(data)
+    data.properties = { address }
+    this._track(data, hash(did))
   }
 
   // TODO differentiate types of updates
   trackRootUpdate (did) {
     let data = {}
     data.event = 'root_update'
-    data.properties = { did_hash: hash(did) }
-    this._track(data)
+    data.properties = { }
+    this._track(data, hash(did))
   }
 
   trackThreadUpdate (address, space, name) {
@@ -96,42 +112,42 @@ class AnalyticsAPI extends Analytics {
     let data = {}
     data.event = 'api_list_spaces'
     data.properties = { address: address, status, origin: domain(origin) }
-    this._track(data)
+    this._track(data, domain(origin))
   }
 
   trackGetConfig (address, status, origin) {
     let data = {}
     data.event = 'api_get_config'
     data.properties = { address: address, status, origin: domain(origin) }
-    this._track(data)
+    this._track(data, domain(origin))
   }
 
   trackGetThread (address, status, origin) {
     let data = {}
     data.event = 'api_get_thread'
     data.properties = { address: address, status, origin: domain(origin) }
-    this._track(data)
+    this._track(data, domain(origin))
   }
 
   trackGetSpace (address, name, spaceExisted, status, origin) {
     let data = {}
     data.event = 'api_get_space'
     data.properties = { address: address, name: name, profile_existed: spaceExisted, status, origin: domain(origin) }
-    this._track(data)
+    this._track(data, domain(origin))
   }
 
   trackGetProfile (address, profileExisted, status, origin) {
     let data = {}
     data.event = 'api_get_profile'
     data.properties = { address: address, profile_existed: profileExisted, status, origin: domain(origin) }
-    this._track(data)
+    this._track(data, domain(origin))
   }
 
   trackGetProfiles (status, origin) {
     let data = {}
     data.event = 'api_get_profiles'
     data.properties = { status, origin: domain(origin) }
-    this._track(data)
+    this._track(data, domain(origin))
   }
 }
 

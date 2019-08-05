@@ -313,21 +313,16 @@ class Pinning {
 
   async rootStoreToDID (rootStoreAddress) {
     try {
-      const config = await this.openDBs[rootStoreAddress].db
+      const linkEntry = await this.openDBs[rootStoreAddress].db
         .iterator({ limit: -1 })
         .collect()
-        .reduce(async (conf, entry) => {
-          conf = await conf
-          const value = entry.payload.value
-          if (value.type === rootEntryTypes.ADDRESS_LINK) {
-            if (!conf.links) conf.links = []
-            const obj = (await this.ipfs.dag.get(value.data)).value
-            conf.links.push(obj)
-          }
-          return conf
-        }, Promise.resolve({}))
-
-      const link = config.links[0]
+        .find(e => {
+          const value = e.payload.value
+          return value.type === rootEntryTypes.ADDRESS_LINK
+        })
+      if (!linkEntry) return null
+      const linkAddress = linkEntry.payload.value.data
+      const link = (await this.ipfs.dag.get(linkAddress)).value
       const did = /\bdid:.*\b/g.exec(link.message)[0]
       return did
     } catch (e) {
@@ -420,6 +415,7 @@ class Pinning {
     if (OrbitDB.isValidAddress(data.odbAddress)) {
       if (data.type === 'PIN_DB') {
         this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
+        this.analytics.trackPinDBAddress(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
         this.analytics.trackSyncDB(data.odbAddress)
