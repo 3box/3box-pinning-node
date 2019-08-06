@@ -35,6 +35,7 @@ class CacheService {
 
   async listSpaces (req, res, next) {
     const { address, did } = req.query
+    const origin = req.headers.origin
 
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
@@ -43,15 +44,16 @@ class CacheService {
 
       res.json(spaces)
       if (!cacheSpaces) this.cache.write(`space-list_${rootStoreAddress}`, spaces)
-      this.analytics.trackListSpaces(address, 200)
+      this.analytics.trackListSpaces(address, 200, origin)
     } catch (e) {
-      this.analytics.trackListSpaces(address, 500)
+      this.analytics.trackListSpaces(address, 500, origin)
       return errorToResponse(res, e, 'Error: Failed to load spaces')
     }
   }
 
   async getConfig (req, res, next) {
     const { address, did } = req.query
+    const origin = req.headers.origin
 
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
@@ -60,9 +62,9 @@ class CacheService {
 
       res.json(conf)
       if (!cacheConf) this.cache.write(`config_${rootStoreAddress}`, conf)
-      this.analytics.trackGetConfig(address, 200)
+      this.analytics.trackGetConfig(address, 200, origin)
     } catch (e) {
-      this.analytics.trackGetConfig(address, 500)
+      this.analytics.trackGetConfig(address, 500, origin)
       return errorToResponse(res, e, 'Error: Failed to load config')
     }
   }
@@ -70,6 +72,8 @@ class CacheService {
   async getSpace (req, res, next) {
     const { address, did, metadata } = req.query
     const spaceName = req.query.name
+    const origin = req.headers.origin
+
     let spaceExisted
     try {
       const rootStoreAddress = await this.queryToRootStoreAddress({ address, did })
@@ -79,20 +83,21 @@ class CacheService {
       res.json(this._mungeSpace(space, metadata))
       if (!cacheSpace) this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
       spaceExisted = Object.entries(space).length !== 0
-      this.analytics.trackGetSpace(address, spaceName, spaceExisted, 200)
+      this.analytics.trackGetSpace(address, spaceName, spaceExisted, 200, origin)
     } catch (e) {
-      this.analytics.trackGetSpace(address, spaceName, spaceExisted, 500)
+      this.analytics.trackGetSpace(address, spaceName, spaceExisted, 500, origin)
       return errorToResponse(res, e, 'Error: Failed to load space')
     }
   }
 
   async getThread (req, res, next) {
     let { address, space, name, mod, members } = req.query
+    const origin = req.headers.origin
 
     const usingConfig = (space && name && mod && members)
 
     if (!usingConfig && !address) {
-      this.analytics.trackGetThread(null, 404)
+      this.analytics.trackGetThread(null, 404, origin)
       return errorToResponse(res, { statusCode: 404, message: 'Must pass address parameter, or all of space, name, mod, and members parameters' })
     }
 
@@ -102,7 +107,7 @@ class CacheService {
     }
 
     if (!OrbitDBAddress.isValid(address)) {
-      this.analytics.trackGetThread(address, 404)
+      this.analytics.trackGetThread(address, 404, origin)
       return errorToResponse(res, { statusCode: 404, message: 'Invalid orbitdb address given or derived' })
     }
 
@@ -111,13 +116,13 @@ class CacheService {
     try {
       posts = cachePosts || await this.pinning.getThread(address)
     } catch (e) {
-      this.analytics.trackGetThread(address, 500)
+      this.analytics.trackGetThread(address, 500, origin)
       res.status(500).send('Error: Failed to load posts')
       return
     }
     res.json(posts)
     if (!cachePosts) this.cache.write(address, posts)
-    this.analytics.trackGetThread(address, 200)
+    this.analytics.trackGetThread(address, 200, origin)
   }
 
   async ethereumToRootStoreAddress (address) {
@@ -215,6 +220,8 @@ class CacheService {
 
   async getProfile (req, res, next) {
     const { address, did, metadata } = req.query
+    const origin = req.headers.origin
+
     let profileExisted
 
     try {
@@ -228,9 +235,9 @@ class CacheService {
 
       if (!cacheProfile) this.cache.write(rootStoreAddress, profile)
       profileExisted = Object.entries(profile).length !== 0
-      this.analytics.trackGetProfile(address, profileExisted, 200)
+      this.analytics.trackGetProfile(address, profileExisted, 200, origin)
     } catch (e) {
-      this.analytics.trackGetProfile(address, false, 500)
+      this.analytics.trackGetProfile(address, false, 500, origin)
       return errorToResponse(res, e, 'Error: Failed to load profile')
     }
   }
@@ -240,9 +247,10 @@ class CacheService {
   async getProfiles (req, res, next) {
     const { body } = req
     const { metadata, addressList, didList } = body
+    const origin = req.headers.origin
 
     if (!addressList && !didList) {
-      this.analytics.trackGetProfiles(400)
+      this.analytics.trackGetProfiles(400, origin)
       return res.status(400).send('Error: AddressList not given')
     }
 
@@ -271,7 +279,7 @@ class CacheService {
     }, {})
 
     res.json(parsed)
-    this.analytics.trackGetProfiles(200)
+    this.analytics.trackGetProfiles(200, origin)
   }
 }
 

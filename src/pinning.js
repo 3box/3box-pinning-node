@@ -255,9 +255,11 @@ class Pinning {
     })
   }
 
-  async openDB (address, responseFn, onReplicatedFn, rootStoreAddress) {
+  async openDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
     let tick = new timer.Tick('openDB')
     tick.start()
+    let root, did
+
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       const dbPromise = new Promise(async (resolve, reject) => {
@@ -285,41 +287,77 @@ class Pinning {
       this.openDBs[address].loading = false
       responseFn(address)
 
-      this.openDBs[address].db.events.on('replicated', () => {
+      root = address.split('.')[1] === 'root' ? address : rootStoreAddress
+      did = root ? await this.rootStoreToDID(root) : null
+      if (analyticsFn && did) analyticsFn(did, false)
+
+      this.openDBs[address].db.events.on('replicated', async () => {
         if (onReplicatedFn) onReplicatedFn(address)
-        this.rewriteDBCache(address, rootStoreAddress)
+        if (!did) {
+          did = root ? await this.rootStoreToDID(root) : null
+          if (analyticsFn && did) analyticsFn(did, true)
+        }
+        this.rewriteDBCache(address, rootStoreAddress, did)
       })
     } else {
       await this.openDBs[address].dbPromise
       responseFn(address)
+      if (analyticsFn) {
+        root = address.split('.')[1] === 'root' ? address : rootStoreAddress
+        did = root ? await this.rootStoreToDID(root) : null
+        analyticsFn(did, false)
+      }
     }
     tick.stop()
   }
 
-  async rewriteDBCache (odbAddress, rootStoreAddress) {
+  async rootStoreToDID (rootStoreAddress) {
+    try {
+      const linkEntry = await this.openDBs[rootStoreAddress].db
+        .iterator({ limit: -1 })
+        .collect()
+        .find(e => {
+          const value = e.payload.value
+          return value.type === rootEntryTypes.ADDRESS_LINK
+        })
+      if (!linkEntry) return null
+      const linkAddress = linkEntry.payload.value.data
+      const link = (await this.ipfs.dag.get(linkAddress)).value
+      const did = /\bdid:.*\b/g.exec(link.message)[0]
+      return did
+    } catch (e) {
+      return null
+    }
+  }
+
+  async rewriteDBCache (odbAddress, rootStoreAddress, did) {
     const split = odbAddress.split('.')
     if (split[1] === 'space') {
       const spaceName = split[2]
       const space = await this.getSpace(rootStoreAddress, spaceName)
       this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
-      this.analytics.trackSpaceUpdate(odbAddress, spaceName, rootStoreAddress)
+      this.analytics.trackSpaceUpdate(odbAddress, spaceName, did)
     } else if (split[1] === 'public') {
       // the profile is only saved under the rootStoreAddress as key
       const profile = await this.getProfile(rootStoreAddress)
       this.cache.write(rootStoreAddress, profile)
-      this.analytics.trackPublicUpdate(odbAddress, rootStoreAddress)
+      this.analytics.trackPublicUpdate(odbAddress, did)
     } else if (split[1] === 'root') {
       // in this case odbAddress is the rootStoreAddress
       const spaces = await this.listSpaces(odbAddress)
       this.cache.write(`space-list_${odbAddress}`, spaces)
       const config = await this.getConfig(odbAddress)
       this.cache.write(`config_${odbAddress}`, config)
-      this.analytics.trackRootUpdate(odbAddress)
+      this.analytics.trackRootUpdate(did)
     } else if (split[1] === 'thread') {
       // thread cache is stored with the name of the DB
       const posts = await this.getThread(odbAddress)
       this.cache.write(odbAddress, posts)
-      this.analytics.trackThreadUpdate(odbAddress)
+      const threadName = split[2]
+      const threadSpace = split[3]
+      this.analytics.trackThreadUpdate(odbAddress, threadSpace, threadName)
+    } else if (split[1] === 'private') {
+      this.analytics.trackPrivateUpdate(odbAddress, did)
     }
   }
 
@@ -376,8 +414,8 @@ class Pinning {
     console.log(topic, data)
     if (OrbitDB.isValidAddress(data.odbAddress)) {
       if (data.type === 'PIN_DB') {
-        this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this))
-        this.analytics.trackPinDB(data.odbAddress)
+        this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
+        this.analytics.trackPinDBAddress(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
         this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
         this.analytics.trackSyncDB(data.odbAddress)

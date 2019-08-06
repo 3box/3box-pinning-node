@@ -98,7 +98,10 @@ describe('Pinning', () => {
       trackSpaceUpdate: jest.fn(),
       trackPublicUpdate: jest.fn(),
       trackRootUpdate: jest.fn(),
-      trackThreadUpdate: jest.fn()
+      trackThreadUpdate: jest.fn(),
+      trackPrivateUpdate: jest.fn(),
+      trackPinDBAddress: jest.fn(),
+      trackSpaceUpdateByApp: jest.fn()
     }
     pinning = new Pinning(cache, { repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
