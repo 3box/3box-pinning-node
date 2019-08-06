@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.6.1 - 2019-08-6
+* feat: origin api metrics, did hash metrics, unique spaces, metric properties 
+
 ## v1.6.0 - 2019-07-12
 * feat: pin address-link entries from root-store
 * feat: getConfig now returns address-links

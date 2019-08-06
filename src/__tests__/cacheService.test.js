@@ -82,7 +82,7 @@ describe('CacheService', () => {
   })
 
   it('should get profile correctly, with cache', async () => {
-    const req = { query: { address: '0x12345' } }
+    const req = { query: { address: '0x12345' }, headers: { origin: '3box.io' } }
     const res = { json: jest.fn() }
     await cs.getProfile(req, res)
 
@@ -95,7 +95,7 @@ describe('CacheService', () => {
   })
 
   it('should get profile correctly, without cache', async () => {
-    const req = { query: { address: '0x12345' } }
+    const req = { query: { address: '0x12345' }, headers: { origin: '3box.io' } }
     const res = { json: jest.fn() }
     cache.read.mockImplementationOnce(() => null)
     await cs.getProfile(req, res)
@@ -112,7 +112,7 @@ describe('CacheService', () => {
 
   describe('Spaces', () => {
     it('should get space correctly, with cache', async () => {
-      const req = { query: { address: '0x12345', name: 'space1' } }
+      const req = { query: { address: '0x12345', name: 'space1' }, headers: { origin: '3box.io' } }
       const res = { json: jest.fn() }
       await cs.getSpace(req, res)
 
@@ -125,7 +125,7 @@ describe('CacheService', () => {
     })
 
     it('should get space correctly, without cache', async () => {
-      const req = { query: { address: '0x12345', name: 'space1' } }
+      const req = { query: { address: '0x12345', name: 'space1' }, headers: { origin: '3box.io' } }
       const res = { json: jest.fn() }
       cache.read.mockImplementationOnce(() => null)
       await cs.getSpace(req, res)
@@ -141,7 +141,7 @@ describe('CacheService', () => {
     })
 
     it('should list spaces correctly, with cache', async () => {
-      const req = { query: { address: '0x12345' } }
+      const req = { query: { address: '0x12345' }, headers: { origin: '3box.io' } }
       const res = { json: jest.fn() }
       await cs.listSpaces(req, res)
 
@@ -154,7 +154,7 @@ describe('CacheService', () => {
     })
 
     it('should list spaces correctly, without cache', async () => {
-      const req = { query: { address: '0x12345' } }
+      const req = { query: { address: '0x12345' }, headers: { origin: '3box.io' } }
       const res = { json: jest.fn() }
       cache.read.mockImplementationOnce(() => null)
       await cs.listSpaces(req, res)
@@ -176,7 +176,7 @@ describe('CacheService', () => {
     })
 
     it('should get thread correctly, with cache', async () => {
-      const req = { query: { space: 'space1', name: 'thread1', mod: 'did:3:asdfe', members: 'false' } }
+      const req = { query: { space: 'space1', name: 'thread1', mod: 'did:3:asdfe', members: 'false' }, headers: { origin: '3box.io' } }
       const res = { json: jest.fn() }
       await cs.getThread(req, res)
 
@@ -189,7 +189,7 @@ describe('CacheService', () => {
     })
 
     it('should get thread correctly, without cache', async () => {
-      const req = { query: { space: 'space1', name: 'thread1', mod: 'did:3:asdfe', members: 'false' } }
+      const req = { query: { space: 'space1', name: 'thread1', mod: 'did:3:asdfe', members: 'false' }, headers: { origin: '3box.io' } }
       const res = { json: jest.fn() }
       cache.read.mockImplementationOnce(() => null)
       await cs.getThread(req, res)
