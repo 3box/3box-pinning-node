@@ -45,11 +45,11 @@ const rejectOnError = (reject, f) => {
   }
 }
 
-const pinDID = did => {
+const pinDID = async did => {
   if (!did) return
   // We resolve the DID in order to pin the ipfs object
   try {
-    resolveDID(did)
+    await resolveDID(did)
     // if this throws it's not a DID
   } catch (e) {}
 }
