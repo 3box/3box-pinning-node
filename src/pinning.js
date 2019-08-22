@@ -45,11 +45,11 @@ const rejectOnError = (reject, f) => {
   }
 }
 
-const pinDID = did => {
+const pinDID = async did => {
   if (!did) return
   // We resolve the DID in order to pin the ipfs object
   try {
-    resolveDID(did)
+    await resolveDID(did)
     // if this throws it's not a DID
   } catch (e) {}
 }
@@ -103,6 +103,10 @@ class Pinning {
         const db = entry.db
         delete this.openDBs[address]
         await db.close()
+      } else {
+        // we should still close the DB even if we where not able to open it
+        // otherwise we'll have a memory leak
+        delete this.openDBs[address]
       }
     }
   }
@@ -262,26 +266,24 @@ class Pinning {
 
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
-      const dbPromise = new Promise(async (resolve, reject) => {
-        const cid = new CID(address.split('/')[2])
-        const opts = {
-          accessController: {
-            type: 'legacy-ipfs-3box',
-            skipManifest: true
-          }
-        }
-        const db = await this.orbitdb.open(address, cid.version === 0 ? opts : {})
-        db.events.on('ready', () => {
-          resolve(db)
-        })
-        db.load()
-      })
-
       this.openDBs[address] = {
-        dbPromise: dbPromise,
-        latestTouch: Date.now(),
-        loading: true
+        dbPromise: new Promise(async (resolve, reject) => {
+          const cid = new CID(address.split('/')[2])
+          const opts = {
+            accessController: {
+              type: 'legacy-ipfs-3box',
+              skipManifest: true
+            }
+          }
+          const db = await this.orbitdb.open(address, cid.version === 0 ? opts : {})
+          db.events.on('ready', () => {
+            resolve(db)
+          })
+          db.load()
+        })
       }
+      this.openDBs[address].latestTouch = Date.now()
+      this.openDBs[address].loading = true
 
       this.openDBs[address].db = await this.openDBs[address].dbPromise
       this.openDBs[address].loading = false
@@ -362,9 +364,8 @@ class Pinning {
   }
 
   _sendHasResponse (address) {
-    const numEntries = this.openDBs[address].db._oplog._length
+    const numEntries = this.openDBs[address].db._oplog.values.length
     this._publish('HAS_ENTRIES', address, numEntries)
-    // console.log('HAS_ENTRIES', address.split('.').pop(), numEntries)
   }
 
   _openSubStores (address) {
