@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.6.1 - 2019-08-22
+* fix: correctly calculate HAS_ENTRIES response
+
 ## v1.6.0 - 2019-07-12
 * feat: pin address-link entries from root-store
 * feat: getConfig now returns address-links
