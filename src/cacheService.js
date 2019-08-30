@@ -274,7 +274,7 @@ class CacheService {
 
     const profiles = await Promise.all(profilePromiseArray)
     const parsed = profiles.reduce((acc, val) => {
-      acc[val['address']] = val['profile']
+      acc[val.address] = val.profile
       return acc
     }, {})
 

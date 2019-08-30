@@ -45,7 +45,7 @@ class Util {
     const managementKey = doc.publicKey.find(key => key.id.includes('#managementKey')).ethereumAddress
     const encryptionKey = doc.publicKey.find(key => key.id.includes('#encryptionKey')).publicKeyBase64
     const muportdoc = Util.createMuportDocument(signingKey, managementKey, encryptionKey)
-    let docHash = (await ipfs.add(Buffer.from(JSON.stringify(muportdoc))))[0].hash
+    const docHash = (await ipfs.add(Buffer.from(JSON.stringify(muportdoc))))[0].hash
     return 'did:muport:' + docHash
   }
 
