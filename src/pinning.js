@@ -1,6 +1,7 @@
 const IPFS = require('ipfs')
 const { CID } = require('ipfs')
-const OrbitDB = require('orbit-db')
+const OrbitDB = require('./orbit-db/OrbitDB.js')
+const MessageBroker = require('./MessageBroker')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
@@ -77,7 +78,8 @@ class Pinning {
     const ipfsId = await this.ipfs.id()
     console.log(ipfsId)
     const orbitOpts = {
-      directory: this.orbitdbPath
+      directory: this.orbitdbPath,
+      broker: MessageBroker
     }
     if (this.orbitCacheOpts) {
       orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
