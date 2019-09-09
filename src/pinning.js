@@ -250,7 +250,7 @@ class Pinning {
           .iterator({ limit: -1 })
           .collect()
           .map(entry => {
-            const post = Object.assign({ postId: entry.hash }, entry.payload.value)
+            const post = Object.assign({ postId: entry.hash, author: entry.identity.id }, entry.payload.value)
             return post
           })
         resolve(posts)
