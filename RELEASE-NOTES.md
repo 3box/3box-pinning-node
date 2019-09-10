@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.6.3 - 2019-09-10
+* fix: return author on getThread
+
 ## v1.6.2 - 2019-08-22
 * fix: correctly calculate HAS_ENTRIES response
 
