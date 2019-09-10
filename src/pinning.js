@@ -250,7 +250,7 @@ class Pinning {
           .iterator({ limit: -1 })
           .collect()
           .map(entry => {
-            const post = Object.assign({ postId: entry.hash }, entry.payload.value)
+            const post = Object.assign({ postId: entry.hash, author: entry.identity.id }, entry.payload.value)
             return post
           })
         resolve(posts)
@@ -260,14 +260,14 @@ class Pinning {
   }
 
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
-    let tick = new timer.Tick('openDB')
+    const tick = new timer.Tick('openDB')
     tick.start()
     let root, did
 
     if (!this.openDBs[address]) {
       console.log('Opening db:', address)
       this.openDBs[address] = {
-        dbPromise: new Promise(async (resolve, reject) => {
+        dbPromise: new Promise((resolve, reject) => {
           const cid = new CID(address.split('/')[2])
           const opts = {
             accessController: {
@@ -275,11 +275,12 @@ class Pinning {
               skipManifest: true
             }
           }
-          const db = await this.orbitdb.open(address, cid.version === 0 ? opts : {})
-          db.events.on('ready', () => {
-            resolve(db)
+          this.orbitdb.open(address, cid.version === 0 ? opts : {}).then(db => {
+            db.events.on('ready', () => {
+              resolve(db)
+            })
+            db.load()
           })
-          db.load()
         })
       }
       this.openDBs[address].latestTouch = Date.now()
@@ -403,7 +404,7 @@ class Pinning {
   }
 
   _publish (type, odbAddress, data) {
-    let dataObj = { type, odbAddress }
+    const dataObj = { type, odbAddress }
     if (type === 'HAS_ENTRIES') {
       dataObj.numEntries = data
     } else if (type === 'REPLICATED') {
