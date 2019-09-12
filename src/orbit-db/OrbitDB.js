@@ -41,7 +41,8 @@ let databaseTypes = {
     this.identity = identity
     this.id = options.peerId
     this._pubsub = options && options.broker
-      ? new options.broker(this._ipfs)
+    // TODO this was needed, pass id also
+      ? new options.broker(this._ipfs, this.id)
       : new Pubsub(this._ipfs, this.id)
     this.directory = options.directory || './orbitdb'
     this.keystore = options.keystore
