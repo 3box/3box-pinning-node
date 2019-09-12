@@ -9,27 +9,26 @@ const messageClientPub = redis.createClient(redisOpts)
 
 // set server ids and ignore messages from own client
 const NODE_ID = process.env.NODE_ID
+const createMessage = (heads) => JSON.stringify({node_id: NODE_ID, heads})
+const messageParse = (message) => JSON.parse(message)
 
 class MessageBroker extends Pubsub {
+  constructor (ipfs, id) {
+    super(ipfs, id)
+    this._topics = {}
+    messageClient.on("message", this.messageHandler.bind(this))
+  }
 
   async subscribe(topic, onMessageCallback, onNewPeerCallback) {
-    messageClient.subscribe(topic)
-    messageClient.on("message", (channel, message) => {
-      // TODO hacky for not registering multiple times, but will register global channel/listener instances after instead
-      if (channel === topic) {
-        if (JSON.parse(message).node_id !== NODE_ID ) {
-          // console.log('On MESSAGE REDIS ---------')
-          // console.log(channel + ": " + message);
-          onMessageCallback(channel, JSON.parse(message).heads)
-          super.publish(channel, JSON.parse(message).heads)
-        }
-      }
-    })
+    if (!this._topics[topic]) {
+      messageClient.subscribe(topic)
+      this._topics[topic] = { onMessageCallback }  // TODO this is always same cb right now? but should still bind per tpic
+    }
 
     const onMessageWrap = (address, heads) => {
       // console.log('On MESSAGE PUBSUB ---------')
       // console.log(JSON.stringify({node_id: NODE_ID, heads}))
-      messageClientPub.publish(address, JSON.stringify({node_id: NODE_ID, heads}))
+      messageClientPub.publish(address, createMessage(heads))
       onMessageCallback(address, heads)
     }
 
@@ -40,6 +39,20 @@ class MessageBroker extends Pubsub {
     super.subscribe(topic, onMessageWrap, onNewPeerWrap)
   }
 
+  async unsubscribe(topic) {
+    messageClient.unsubscribe(topic)
+    super.unsubscribe(topic)
+  }
+
+  messageHandler (topic, rawMessage) {
+    if (!this._topics[topic]) return
+    const message = messageParse(rawMessage)
+    if (message.node_id === NODE_ID ) return
+    // console.log('On MESSAGE REDIS ---------')
+    // console.log(channel + ": " + message);
+    this._topics[topic].onMessageCallback(topic, message.heads)
+    super.publish(topic, message.heads)
+  }
 }
 
 module.exports =  MessageBroker
