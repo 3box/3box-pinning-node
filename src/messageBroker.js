@@ -1,19 +1,35 @@
 const Pubsub = require('orbit-db-pubsub')
 
+// TODO Using redis locally, but allow interface to consume any pubsub infra after
+// TODO allow as option to exported func to configure from node startup
+const redis = require("redis")
+const redisOpts = { host: 'redis'}
+const messageClient = redis.createClient(redisOpts)
+const messageClientPub = redis.createClient(redisOpts)
+
+// set server ids and ignore messages from own client
+const NODE_ID = process.env.NODE_ID
 
 class MessageBroker extends Pubsub {
 
   async subscribe(topic, onMessageCallback, onNewPeerCallback) {
+    messageClient.subscribe(topic)
+    messageClient.on("message", (channel, message) => {
+      // TODO hacky for not registering multiple times, but will register global channel/listener instances after instead
+      if (channel === topic) {
+        if (JSON.parse(message).node_id !== NODE_ID ) {
+          // console.log('On MESSAGE REDIS ---------')
+          // console.log(channel + ": " + message);
+          onMessageCallback(channel, JSON.parse(message).heads)
+          super.publish(channel, JSON.parse(message).heads)
+        }
+      }
+    })
 
-    // TODO (receive update from message broker)
-    //  Subscribe to given topic with our internal message broker
-    //  Register on message callback with subscription, and parse the same orbit already does to return heads, before calling
-
-    // Below, still receive updates from normal pubsub ops, but now relay to topic in internal message broker as well
     const onMessageWrap = (address, heads) => {
-      // TODO
-      // push/write this message logged below to our broker
-      console.log(JSON.stringify(heads))
+      // console.log('On MESSAGE PUBSUB ---------')
+      // console.log(JSON.stringify({node_id: NODE_ID, heads}))
+      messageClientPub.publish(address, JSON.stringify({node_id: NODE_ID, heads}))
       onMessageCallback(address, heads)
     }
 
@@ -23,7 +39,7 @@ class MessageBroker extends Pubsub {
 
     super.subscribe(topic, onMessageWrap, onNewPeerWrap)
   }
-}
 
+}
 
 module.exports =  MessageBroker

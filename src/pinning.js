@@ -17,6 +17,7 @@ const {
 const Identities = require('orbit-db-identity-provider')
 Identities.addIdentityProvider(OdbIdentityProvider)
 const AccessControllers = require('orbit-db-access-controllers')
+const IPFSLog = require('ipfs-log')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
@@ -308,7 +309,10 @@ class Pinning {
       this.openDBs[address] = {
         dbPromise: new Promise((resolve, reject) => {
           const cid = new CID(address.split('/')[2])
+
           const opts = {
+            syncLocal: true,
+            sortFn: IPFSLog.Sorting.SortByEntryHash, // this option is required now but will likely not be in the future.
             accessController: {
               type: 'legacy-ipfs-3box',
               skipManifest: true
