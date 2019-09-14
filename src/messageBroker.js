@@ -1,34 +1,29 @@
 const Pubsub = require('orbit-db-pubsub')
+const redis = require('redis')
 
-// TODO Using redis locally, but allow interface to consume any pubsub infra after
-// TODO allow as option to exported func to configure from node startup
-const redis = require("redis")
-const redisOpts = { host: 'redis'}
-const messageClient = redis.createClient(redisOpts)
-const messageClientPub = redis.createClient(redisOpts)
-
-// set server ids and ignore messages from own client
-const NODE_ID = process.env.NODE_ID
-const createMessage = (heads) => JSON.stringify({node_id: NODE_ID, heads})
+const createMessage = (heads, id) => JSON.stringify({ from: id, heads })
 const messageParse = (message) => JSON.parse(message)
 
 class MessageBroker extends Pubsub {
-  constructor (ipfs, id) {
+  constructor (ipfs, id, instanceId, redisOpts) {
     super(ipfs, id)
     this._topics = {}
-    messageClient.on("message", this.messageHandler.bind(this))
+    this.instanceId = instanceId
+    this.messageClientSub = redis.createClient(redisOpts)
+    this.messageClientPub = redis.createClient(redisOpts)
+    this.messageClientSub.on('message', this.messageHandler.bind(this))
   }
 
-  async subscribe(topic, onMessageCallback, onNewPeerCallback) {
+  async subscribe (topic, onMessageCallback, onNewPeerCallback) {
     if (!this._topics[topic]) {
-      messageClient.subscribe(topic)
-      this._topics[topic] = { onMessageCallback }  // TODO this is always same cb right now? but should still bind per tpic
+      this.messageClientSub.subscribe(topic)
+      this._topics[topic] = { onMessageCallback }
     }
 
     const onMessageWrap = (address, heads) => {
-      // console.log('On MESSAGE PUBSUB ---------')
-      // console.log(JSON.stringify({node_id: NODE_ID, heads}))
-      messageClientPub.publish(address, createMessage(heads))
+      console.log('On MESSAGE PUBSUB ---------')
+      console.log(JSON.stringify(createMessage(heads, this.instanceId)))
+      this.messageClientPub.publish(address, createMessage(heads, this.instanceId))
       onMessageCallback(address, heads)
     }
 
@@ -39,20 +34,20 @@ class MessageBroker extends Pubsub {
     super.subscribe(topic, onMessageWrap, onNewPeerWrap)
   }
 
-  async unsubscribe(topic) {
-    messageClient.unsubscribe(topic)
+  async unsubscribe (topic) {
+    this.messageClientSub.unsubscribe(topic)
     super.unsubscribe(topic)
   }
 
   messageHandler (topic, rawMessage) {
     if (!this._topics[topic]) return
     const message = messageParse(rawMessage)
-    if (message.node_id === NODE_ID ) return
-    // console.log('On MESSAGE REDIS ---------')
-    // console.log(channel + ": " + message);
+    if (message.from === this.instanceId) return
+    console.log('On MESSAGE REDIS ---------')
+    console.log(topic + ': ' + JSON.stringify(message))
     this._topics[topic].onMessageCallback(topic, message.heads)
     super.publish(topic, message.heads)
   }
 }
 
-module.exports =  MessageBroker
+module.exports = (instanceId, redisOpts) => (ipfs, id) => new MessageBroker(ipfs, id, instanceId, redisOpts)
