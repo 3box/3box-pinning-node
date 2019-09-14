@@ -1,6 +1,6 @@
 const IPFS = require('ipfs')
 const { CID } = require('ipfs')
-const OrbitDB = require('./orbit-db/OrbitDB.js')
+const OrbitDB = require('orbit-db')
 const MessageBroker = require('./messageBroker')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
@@ -119,11 +119,16 @@ class Pinning {
     const orbitOpts = {
       directory: this.orbitdbPath
     }
-    if (this.pubSubConfig) orbitOpts.broker = MessageBroker(this.pubSubConfig.instanceId, this.pubSubConfig.redis)
     if (this.orbitCacheOpts) {
       orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
     }
     this.orbitdb = await OrbitDB3Box.createInstance(this.ipfs, orbitOpts)
+    if (this.pubSubConfig) {
+      const orbitOnMessage = this.orbitdb._onMessage.bind(this.orbitdb)
+      const messageBroker = new MessageBroker(this.orbitdb._ipfs, this.orbitdb.id, this.pubSubConfig.instanceId, this.pubSubConfig.redis, orbitOnMessage)
+      this.orbitdb._pubsub = messageBroker
+      this.orbitdb._onMessage = messageBroker.onMessageWrap.bind(messageBroker)
+    }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
