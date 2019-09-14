@@ -7,6 +7,7 @@ const { ipfsRepo } = require('./s3')
 const { RedisCache, NullCache } = require('./cache')
 const CacheService = require('./cacheService')
 const analytics = require('./analytics')
+const { randInt } = require('./util')
 
 const env = process.env.NODE_ENV || 'development'
 require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
@@ -19,12 +20,13 @@ const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
 const CACHE_SERVICE_ONLY = process.env.CACHE_SERVICE_ONLY
-const INSTANCE_ID = process.env.INSTANCE_ID
 const PUBSUB_REDIS_PATH = process.env.PUBSUB_REDIS_PATH
 
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
+
+const INSTANCE_ID = randInt(10000000000).toString()
 
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 const runCacheService = argv.runCacheService !== 'false'
@@ -33,6 +35,7 @@ const runCacheServiceOnly = CACHE_SERVICE_ONLY === 'true'
 
 const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
+const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
 
 function sendInfraMetrics () {
   analyticsClient.node.trackInfraMetrics()
@@ -61,7 +64,6 @@ function prepareIPFSConfig () {
 async function start (runCacheService, runCacheServiceOnly) {
   const cache = REDIS_PATH && runCacheService ? new RedisCache({ host: REDIS_PATH }, DAYS15) : new NullCache()
   const ipfsConfig = prepareIPFSConfig()
-  const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
   const pinning = new Pinning(cache, ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, runCacheServiceOnly, pubSubConfig)
   await pinning.start()
   setInterval(sendInfraMetrics, 1800000)

@@ -28,15 +28,11 @@ class MessageBroker extends Pubsub {
   messageHandler (topic, rawMessage) {
     const message = messageParse(rawMessage)
     if (message.from === this.instanceId) return
-    // console.log('On MESSAGE REDIS ---------')
-    // console.log(topic + ': ' + JSON.stringify(message))
     this.onMessageCallback(topic, message.heads)
     super.publish(topic, message.heads)
   }
 
   onMessageWrap (address, heads) {
-    // console.log('On MESSAGE PUBSUB ---------')
-    // console.log(JSON.stringify(createMessage(heads, this.instanceId)))
     this.messageClientPub.publish(address, createMessage(heads, this.instanceId))
     this.onMessageCallback(address, heads)
   }
