@@ -19,6 +19,8 @@ const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
 const CACHE_SERVICE_ONLY = process.env.CACHE_SERVICE_ONLY
+const INSTANCE_ID = process.env.INSTANCE_ID
+const PUBSUB_REDIS_PATH = process.env.PUBSUB_REDIS_PATH
 
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
@@ -59,7 +61,8 @@ function prepareIPFSConfig () {
 async function start (runCacheService, runCacheServiceOnly) {
   const cache = REDIS_PATH && runCacheService ? new RedisCache({ host: REDIS_PATH }, DAYS15) : new NullCache()
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(cache, ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, runCacheServiceOnly)
+  const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
+  const pinning = new Pinning(cache, ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, runCacheServiceOnly, pubSubConfig)
   await pinning.start()
   setInterval(sendInfraMetrics, 1800000)
   if (runCacheService) {

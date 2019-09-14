@@ -1,7 +1,7 @@
 const IPFS = require('ipfs')
 const { CID } = require('ipfs')
 const OrbitDB = require('./orbit-db/OrbitDB.js')
-const MessageBroker = require('./MessageBroker')
+const MessageBroker = require('./messageBroker')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
@@ -60,7 +60,7 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly) {
+  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly, pubSubConfig) {
     this.cache = cache
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
@@ -68,6 +68,7 @@ class Pinning {
     this.analytics = analytics
     this.orbitCacheOpts = orbitCacheOpts
     this.runCacheServiceOnly = runCacheServiceOnly
+    this.pubSubConfig = pubSubConfig
     this.dbOpenInterval = this.runCacheServiceOnly ? NINETY_SECONDS : THIRTY_MINUTES
     this.dbCheckCloseInterval = this.runCacheServiceOnly ? FORTY_FIVE_SECONDS : TEN_MINUTES
   }
@@ -79,9 +80,9 @@ class Pinning {
     const ipfsId = await this.ipfs.id()
     console.log(ipfsId)
     const orbitOpts = {
-      directory: this.orbitdbPath,
-      broker: MessageBroker
+      directory: this.orbitdbPath
     }
+    if (this.pubSubConfig) orbitOpts.broker = MessageBroker(this.pubSubConfig.instanceId, this.pubSubConfig.redis)
     if (this.orbitCacheOpts) {
       orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
     }
