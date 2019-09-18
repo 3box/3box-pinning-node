@@ -20,6 +20,43 @@ AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessCo
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 
+// A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
+// Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
+// fix implemented below.
+class OrbitDB3Box extends OrbitDB {
+  // wrap to return OrbitDB3Box instead of OrbitDB instance
+  static async createInstance (ipfs, options = {}) {
+    const orbitdb = await super.createInstance(ipfs, options)
+
+    options = Object.assign({}, options, {
+      peerId: orbitdb.id,
+      directory: orbitdb.directory,
+      keystore: orbitdb.keystore
+    })
+
+    return new OrbitDB3Box(orbitdb._ipfs, orbitdb.identity, options)
+  }
+
+  // register ready listener/state on creation
+  async _createStore (type, address, options) {
+    const store = await super._createStore(type, address, options)
+    this.stores[address.toString()].ready = new Promise(resolve => { store.events.on('ready', resolve) })
+    return store
+  }
+
+  // block message consumption until ready
+  async _onMessage (address, heads) {
+    await this.stores[address].ready
+    super._onMessage(address, heads)
+  }
+
+  // block head exchange with peer until ready
+  async _onPeerConnected (address, peer) {
+    await this.stores[address].ready
+    super._onPeerConnected(address, peer)
+  }
+}
+
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
 const FORTY_FIVE_SECONDS = 45 * 1000
@@ -82,7 +119,7 @@ class Pinning {
     if (this.orbitCacheOpts) {
       orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
     }
-    this.orbitdb = await OrbitDB.createInstance(this.ipfs, orbitOpts)
+    this.orbitdb = await OrbitDB3Box.createInstance(this.ipfs, orbitOpts)
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
