@@ -1,6 +1,7 @@
 const IPFS = require('ipfs')
 const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
+const MessageBroker = require('./messageBroker')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
@@ -16,6 +17,7 @@ const {
 const Identities = require('orbit-db-identity-provider')
 Identities.addIdentityProvider(OdbIdentityProvider)
 const AccessControllers = require('orbit-db-access-controllers')
+const IPFSLog = require('ipfs-log')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
@@ -95,7 +97,7 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly) {
+  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly, pubSubConfig) {
     this.cache = cache
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
@@ -103,6 +105,7 @@ class Pinning {
     this.analytics = analytics
     this.orbitCacheOpts = orbitCacheOpts
     this.runCacheServiceOnly = runCacheServiceOnly
+    this.pubSubConfig = pubSubConfig
     this.dbOpenInterval = this.runCacheServiceOnly ? NINETY_SECONDS : THIRTY_MINUTES
     this.dbCheckCloseInterval = this.runCacheServiceOnly ? FORTY_FIVE_SECONDS : TEN_MINUTES
   }
@@ -120,6 +123,12 @@ class Pinning {
       orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
     }
     this.orbitdb = await OrbitDB3Box.createInstance(this.ipfs, orbitOpts)
+    if (this.pubSubConfig) {
+      const orbitOnMessage = this.orbitdb._onMessage.bind(this.orbitdb)
+      const messageBroker = new MessageBroker(this.orbitdb._ipfs, this.orbitdb.id, this.pubSubConfig.instanceId, this.pubSubConfig.redis, orbitOnMessage)
+      this.orbitdb._pubsub = messageBroker
+      this.orbitdb._onMessage = messageBroker.onMessageWrap.bind(messageBroker)
+    }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
     setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
@@ -306,7 +315,10 @@ class Pinning {
       this.openDBs[address] = {
         dbPromise: new Promise((resolve, reject) => {
           const cid = new CID(address.split('/')[2])
+
           const opts = {
+            syncLocal: true,
+            sortFn: IPFSLog.Sorting.SortByEntryHash, // this option is required now but will likely not be in the future.
             accessController: {
               type: 'legacy-ipfs-3box',
               skipManifest: true
