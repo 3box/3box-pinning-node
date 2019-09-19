@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.6.4 - 2019-09-18
+* fix: wait to consumer/exchange heads until store ready (local orbitdb fix)
+
 ## v1.6.3 - 2019-09-10
 * fix: return author on getThread
 
