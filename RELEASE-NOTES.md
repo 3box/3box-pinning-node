@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.7.0 - 2019-09-20
+* feat: multi node support with internal message layer
+
 ## v1.6.4 - 2019-09-18
 * fix: wait to consumer/exchange heads until store ready (local orbitdb fix)
 
