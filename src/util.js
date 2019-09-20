@@ -72,6 +72,10 @@ class Util {
 
     return addr.toString()
   }
+
+  static randInt (max) {
+    return Math.floor(Math.random() * max)
+  }
 }
 
 module.exports = Util
