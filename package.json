@@ -40,6 +40,7 @@
     "muport-did-resolver": "^0.3.1",
     "orbit-db": "^0.21.4",
     "orbit-db-cache-redis": "0.0.3",
+    "os-utils": "0.0.14",
     "redis": "^2.8.0",
     "url-parse": "^1.4.7",
     "yargs": "^13.2.2"
