@@ -3,6 +3,7 @@ const axios = require('axios')
 const Util = require('./util')
 const { InvalidInputError, ProfileNotFound } = require('./errors')
 const OrbitDBAddress = require('orbit-db/src/orbit-db-address')
+const os = require('os-utils')
 
 const namesTothreadName = (spaceName, threadName) => `3box.thread.${spaceName}.${threadName}`
 
@@ -24,6 +25,7 @@ class CacheService {
     this.app.get('/list-spaces', this.listSpaces.bind(this))
     this.app.get('/config', this.getConfig.bind(this))
     this.app.get('/thread', this.getThread.bind(this))
+    this.app.get('/healthcheck', this.healthCheck.bind(this))
   }
 
   start () {
@@ -31,6 +33,14 @@ class CacheService {
       console.log('Cache service running on port 8081')
     })
     server.keepAliveTimeout = 60 * 1000
+  }
+
+  async healthCheck (req, res, next) {
+    if (!this.pinning.ipfs.isOnline()) return res.status(503).send()
+    const cpuFree = await new Promise((resolve, reject) => os.cpuFree(resolve))
+    const memFree = os.freememPercentage()
+    if (cpuFree < 0.05 || memFree < 0.20) return res.status(503).send()
+    return res.status(200).send()
   }
 
   async listSpaces (req, res, next) {
