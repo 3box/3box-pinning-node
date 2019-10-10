@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.7.1 - 2019-10-10
+* feat: dedicated healthcheck endpoint
+
 ## v1.7.0 - 2019-09-20
 * feat: multi node support with internal message layer
 
