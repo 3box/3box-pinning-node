@@ -43,7 +43,7 @@
     "os-utils": "0.0.14",
     "redis": "^2.8.0",
     "url-parse": "^1.4.7",
-    "yargs": "^14.2.0"
+    "yargs": "^15.0.1"
   },
   "jest": {
     "testEnvironment": "node"
