@@ -474,6 +474,9 @@ class Pinning {
       if (data.did) {
         pinDID(data.did)
       }
+      if (data.muportDID) {
+        pinDID(data.muportDID)
+      }
     }
   }
 
