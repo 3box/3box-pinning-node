@@ -443,8 +443,12 @@ class Pinning {
     // assuming address is root store
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect()
     // Filter for address-links, get CID, and get to pin it
-    entries.filter(e => e.payload.value.type === 'address-link')
-      .map(e => { this.ipfs.dag.get(e.payload.value.data) })
+    const filter = e => e.payload.value.type === 'address-link' || e.payload.value.type === 'auth-data'
+    entries.filter(filter).forEach(async e => {
+      const cid = e.payload.value.data
+      await this.ipfs.dag.get(cid)
+      this.ipfs.pin.add(cid)
+    })
   }
 
   _openSubStoresAndSendHasResponse (address) {
