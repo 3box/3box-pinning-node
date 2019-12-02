@@ -1,6 +1,6 @@
 {
   "name": "3box-pinning-node",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "IPFS Node that runs OrbitDB under the hood",
   "main": "src/node.js",
   "scripts": {
@@ -43,7 +43,7 @@
     "os-utils": "0.0.14",
     "redis": "^2.8.0",
     "url-parse": "^1.4.7",
-    "yargs": "^13.2.2"
+    "yargs": "^14.2.0"
   },
   "jest": {
     "testEnvironment": "node"

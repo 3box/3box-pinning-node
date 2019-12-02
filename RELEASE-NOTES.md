@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.7.2 - 2019-12-02
+* fix: pin auth-data objects from rootstore
+
 ## v1.7.1 - 2019-10-10
 * feat: dedicated healthcheck endpoint
 
