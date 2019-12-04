@@ -1,7 +1,6 @@
 const express = require('express')
 const os = require('os-utils')
 
-
 class HealthcheckService {
   constructor (pinning, port) {
     this.pinning = pinning

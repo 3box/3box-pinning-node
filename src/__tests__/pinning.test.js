@@ -66,15 +66,15 @@ const THREEID_MOCK = {
 const register3idResolver = () => registerMethod('3', async () => {
   return {
     '@context': 'https://w3id.org/did/v1',
-    'id': 'did:3:asdfasdf',
-    'publicKey': [{
-      'id': 'did:3:asdfasdf#signingKey',
-      'type': 'Secp256k1VerificationKey2018',
-      'publicKeyHex': '044f5c08e2150b618264c4794d99a22238bf60f1133a7f563e74fcf55ddb16748159872687a613545c65567d2b7a4d4e3ac03763e1d9a5fcfe512a371faa48a781'
+    id: 'did:3:asdfasdf',
+    publicKey: [{
+      id: 'did:3:asdfasdf#signingKey',
+      type: 'Secp256k1VerificationKey2018',
+      publicKeyHex: '044f5c08e2150b618264c4794d99a22238bf60f1133a7f563e74fcf55ddb16748159872687a613545c65567d2b7a4d4e3ac03763e1d9a5fcfe512a371faa48a781'
     }],
-    'authentication': [{
-      'type': 'Secp256k1SignatureAuthentication2018',
-      'publicKey': 'did:3:asdfasdf#signingKey'
+    authentication: [{
+      type: 'Secp256k1SignatureAuthentication2018',
+      publicKey: 'did:3:asdfasdf#signingKey'
     }]
   }
 })
@@ -119,7 +119,7 @@ describe('Pinning', () => {
   it('should sync db correctly from client', async () => {
     await testClient.createDB(true)
     const responsesPromise = new Promise((resolve, reject) => {
-      let hasResponses = []
+      const hasResponses = []
       testClient.onMsg.mockImplementation((topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
           expect(data.numEntries).toEqual(0)
@@ -249,7 +249,7 @@ describe('Pinning', () => {
       // for some reason there is an issue with the db not getting fully
       // replicated in time even after the dbSyncPromise. Wait for 0.5 s
       await new Promise((resolve, reject) => { setTimeout(resolve, 500) })
-      let posts = await testClient.getThreadPosts()
+      const posts = await testClient.getThreadPosts()
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
     })
@@ -376,14 +376,14 @@ class TestClient {
 
   async getProfile () {
     const profile = this.pubStore.all
-    let parsedProfile = {}
+    const parsedProfile = {}
     Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
     return parsedProfile
   }
 
   async getPrivImg () {
     const img = this.privStore.all
-    let parsedProfile = {}
+    const parsedProfile = {}
     Object.keys(img).map(key => { parsedProfile[key] = img[key].value })
     return parsedProfile
   }
