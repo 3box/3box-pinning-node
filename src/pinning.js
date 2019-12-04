@@ -97,17 +97,15 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly, pubSubConfig) {
-    this.cache = cache
+  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
     this.orbitCacheOpts = orbitCacheOpts
-    this.runCacheServiceOnly = runCacheServiceOnly
     this.pubSubConfig = pubSubConfig
-    this.dbOpenInterval = this.runCacheServiceOnly ? NINETY_SECONDS : THIRTY_MINUTES
-    this.dbCheckCloseInterval = this.runCacheServiceOnly ? FORTY_FIVE_SECONDS : TEN_MINUTES
+    this.dbOpenInterval = THIRTY_MINUTES
+    this.dbCheckCloseInterval = TEN_MINUTES
   }
 
   async start () {
@@ -349,7 +347,6 @@ class Pinning {
           did = root ? await this.rootStoreToDID(root) : null
           if (analyticsFn && did) analyticsFn(did, true)
         }
-        this.rewriteDBCache(address, rootStoreAddress, did)
       })
     } else {
       await this.openDBs[address].dbPromise
@@ -382,44 +379,12 @@ class Pinning {
     }
   }
 
-  async rewriteDBCache (odbAddress, rootStoreAddress, did) {
-    const split = odbAddress.split('.')
-    if (split[1] === 'space') {
-      const spaceName = split[2]
-      const space = await this.getSpace(rootStoreAddress, spaceName)
-      this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
-      this.analytics.trackSpaceUpdate(odbAddress, spaceName, did)
-    } else if (split[1] === 'public') {
-      // the profile is only saved under the rootStoreAddress as key
-      const profile = await this.getProfile(rootStoreAddress)
-      this.cache.write(rootStoreAddress, profile)
-      this.analytics.trackPublicUpdate(odbAddress, did)
-    } else if (split[1] === 'root') {
-      // in this case odbAddress is the rootStoreAddress
-      const spaces = await this.listSpaces(odbAddress)
-      this.cache.write(`space-list_${odbAddress}`, spaces)
-      const config = await this.getConfig(odbAddress)
-      this.cache.write(`config_${odbAddress}`, config)
-      this.analytics.trackRootUpdate(did)
-    } else if (split[1] === 'thread') {
-      // thread cache is stored with the name of the DB
-      const posts = await this.getThread(odbAddress)
-      this.cache.write(odbAddress, posts)
-      const threadName = split[2]
-      const threadSpace = split[3]
-      this.analytics.trackThreadUpdate(odbAddress, threadSpace, threadName)
-    } else if (split[1] === 'private') {
-      this.analytics.trackPrivateUpdate(odbAddress, did)
-    }
-  }
-
   _sendHasResponse (address) {
     const numEntries = this.openDBs[address].db._oplog.values.length
     this._publish('HAS_ENTRIES', address, numEntries)
   }
 
   _openSubStores (address) {
-    if (this.runCacheServiceOnly) { return }
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect().filter(e => Boolean(e.payload.value.odbAddress))
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i

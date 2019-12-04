@@ -4,10 +4,9 @@ const argv = require('yargs').argv
 const path = require('path')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
-const { RedisCache, NullCache } = require('./cache')
-const CacheService = require('./cacheService')
 const analytics = require('./analytics')
 const { randInt } = require('./util')
+const HealthcheckService = require('./healthcheckService')
 
 const env = process.env.NODE_ENV || 'development'
 require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
@@ -15,12 +14,11 @@ require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
 const ADDRESS_SERVER_URL = process.env.ADDRESS_SERVER_URL
 const ORBITDB_PATH = process.env.ORBITDB_PATH
 const IPFS_PATH = process.env.IPFS_PATH
-const REDIS_PATH = process.env.REDIS_PATH
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
-const CACHE_SERVICE_ONLY = process.env.CACHE_SERVICE_ONLY
 const PUBSUB_REDIS_PATH = process.env.PUBSUB_REDIS_PATH
+const HEALTHCHECK_PORT = process.env.HEALTHCHECK_PORT || 8081
 
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
@@ -29,9 +27,6 @@ const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 const INSTANCE_ID = randInt(10000000000).toString()
 
 const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
-const runCacheService = argv.runCacheService !== 'false'
-
-const runCacheServiceOnly = CACHE_SERVICE_ONLY === 'true'
 
 const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
@@ -61,16 +56,13 @@ function prepareIPFSConfig () {
   return {}
 }
 
-async function start (runCacheService, runCacheServiceOnly) {
-  const cache = REDIS_PATH && runCacheService ? new RedisCache({ host: REDIS_PATH }, DAYS15) : new NullCache()
+async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(cache, ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, runCacheServiceOnly, pubSubConfig)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, pubSubConfig)
   await pinning.start()
+  const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
+  healthcheckService.start()
   setInterval(sendInfraMetrics, 1800000)
-  if (runCacheService) {
-    const cacheService = new CacheService(cache, pinning, analyticsClient.api, ADDRESS_SERVER_URL)
-    cacheService.start()
-  }
 }
 
-start(runCacheService, runCacheServiceOnly)
+start()

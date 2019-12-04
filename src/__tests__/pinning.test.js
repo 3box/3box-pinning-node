@@ -103,7 +103,7 @@ describe('Pinning', () => {
       trackPinDBAddress: jest.fn(),
       trackSpaceUpdateByApp: jest.fn()
     }
-    pinning = new Pinning(cache, { repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
+    pinning = new Pinning({ repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
@@ -253,27 +253,6 @@ describe('Pinning', () => {
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
     })
-  })
-
-  it('should update DB cache correctly', async () => {
-    const spaceDBAddr = '/orbitdb/QmManifestHash/3box.space.spaceName.keyvalue'
-    const publicDBAddr = '/orbitdb/QmManifestHash/somedata.public'
-    const rootStoreDBAddr = '/orbitdb/QmManifestHash/somedata.root'
-    pinning.listSpaces = jest.fn(() => 'spaces')
-    pinning.getProfile = jest.fn(() => 'profile')
-    pinning.getSpace = jest.fn(() => 'space')
-    pinning.getConfig = jest.fn(() => 'config')
-    await pinning.rewriteDBCache(rootStoreDBAddr)
-    expect(cache.write).toHaveBeenCalledWith(`space-list_${rootStoreDBAddr}`, 'spaces')
-    expect(cache.write).toHaveBeenCalledWith(`config_${rootStoreDBAddr}`, 'config')
-    cache.write.mockClear()
-    await pinning.rewriteDBCache(publicDBAddr, rootStoreDBAddr)
-    expect(cache.write).toHaveBeenCalledWith(rootStoreDBAddr, 'profile')
-    cache.write.mockClear()
-    await pinning.rewriteDBCache(spaceDBAddr, rootStoreDBAddr)
-    expect(cache.write).toHaveBeenCalledWith(`${rootStoreDBAddr}_spaceName`, 'space')
-    cache.write.mockClear()
-    await closeAllStores(pinning)
   })
 })
 
