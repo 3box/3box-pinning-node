@@ -36,15 +36,15 @@ const PROFILE = {
   image: { timestamp: 13, value: 'such picture' }
 }
 
-const PROFILE_ONLY_VALUES = {
-  name: PUBLIC_NAME.value,
-  image: PUBLIC_IMAGE.value
-}
+// const PROFILE_ONLY_VALUES = {
+//   name: PUBLIC_NAME.value,
+//   image: PUBLIC_IMAGE.value
+// }
 
-const PRIV_IMG_ONLY_VALUES = {
-  quiet: PRIVATE_QUIET.value,
-  shh: PRIVATE_SHH.value
-}
+// const PRIV_IMG_ONLY_VALUES = {
+//   quiet: PRIVATE_QUIET.value,
+//   shh: PRIVATE_SHH.value
+// }
 
 const THREEID_MOCK = {
   DID: 'did:3:asdfasdf',

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const argv = require('yargs').argv
 const path = require('path')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
@@ -11,7 +10,6 @@ const HealthcheckService = require('./healthcheckService')
 const env = process.env.NODE_ENV || 'development'
 require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
 
-const ADDRESS_SERVER_URL = process.env.ADDRESS_SERVER_URL
 const ORBITDB_PATH = process.env.ORBITDB_PATH
 const IPFS_PATH = process.env.IPFS_PATH
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
@@ -25,8 +23,6 @@ const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 
 const INSTANCE_ID = randInt(10000000000).toString()
-
-const DAYS15 = 60 * 60 * 24 * 15 // 15 day ttl
 
 const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null

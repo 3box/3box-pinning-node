@@ -52,7 +52,7 @@ describe('test with network', () => {
 
   beforeAll(async () => {
     ipfs = await makeIPFS(IPFS_CONF)
-    const res = await ipfs.add(Buffer.from(MANIFEST))
+    await ipfs.add(Buffer.from(MANIFEST))
     orbitdb = new OrbitDB(ipfs, ODB_PATH)
   })
 

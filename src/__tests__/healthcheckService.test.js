@@ -5,19 +5,19 @@ const { cpuFree: cpuFreeMock, freememPercentage: freememPercentageMock } = requi
 jest.mock('os-utils', () => {
   return {
     cpuFree: jest.fn(),
-    freememPercentage: jest.fn(),
+    freememPercentage: jest.fn()
   }
 })
 
 describe('HealthcheckService', () => {
   const HEALTHCHECK_PORT = 8000
   const pinning = { ipfs: { isOnline: () => {} } }
-  let healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
+  const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   let isOnlineMock
 
   beforeEach(() => {
     isOnlineMock = jest.spyOn(pinning.ipfs, 'isOnline').mockReturnValue(true)
-    cpuFreeMock.mockImplementation(cb => cb(0.8))
+    cpuFreeMock.mockImplementation(cb => cb(0.8)) // eslint-disable-line standard/no-callback-literal
     freememPercentageMock.mockReturnValue(0.8)
   })
 
@@ -36,7 +36,7 @@ describe('HealthcheckService', () => {
   })
 
   it('should return a failure on low cpu', async (done) => {
-    cpuFreeMock.mockImplementation(cb => cb(0.01))
+    cpuFreeMock.mockImplementation(cb => cb(0.01)) // eslint-disable-line standard/no-callback-literal
 
     request(healthcheckService.app)
       .get('/healthcheck')

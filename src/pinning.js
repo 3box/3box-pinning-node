@@ -61,8 +61,6 @@ class OrbitDB3Box extends OrbitDB {
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
-const FORTY_FIVE_SECONDS = 45 * 1000
-const NINETY_SECONDS = 2 * FORTY_FIVE_SECONDS
 const PINNING_ROOM = '3box-pinning'
 const rootEntryTypes = {
   SPACE: 'space',
