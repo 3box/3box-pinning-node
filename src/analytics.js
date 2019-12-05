@@ -19,9 +19,7 @@ class Analytics {
       return false
     }
   }
-}
 
-class AnalyticsNode extends Analytics {
   // trackOpenDB (address, duration) {
   //   let data = {}
   //   data.event = 'open_db'
@@ -107,54 +105,7 @@ class AnalyticsNode extends Analytics {
   }
 }
 
-class AnalyticsAPI extends Analytics {
-  trackListSpaces (address, status, origin) {
-    const data = {}
-    data.event = 'api_list_spaces'
-    data.properties = { address: address, status, origin: domain(origin) }
-    this._track(data, domain(origin))
-  }
-
-  trackGetConfig (address, status, origin) {
-    const data = {}
-    data.event = 'api_get_config'
-    data.properties = { address: address, status, origin: domain(origin) }
-    this._track(data, domain(origin))
-  }
-
-  trackGetThread (address, status, origin) {
-    const data = {}
-    data.event = 'api_get_thread'
-    data.properties = { address: address, status, origin: domain(origin) }
-    this._track(data, domain(origin))
-  }
-
-  trackGetSpace (address, name, spaceExisted, status, origin) {
-    const data = {}
-    data.event = 'api_get_space'
-    data.properties = { address: address, name: name, profile_existed: spaceExisted, status, origin: domain(origin) }
-    this._track(data, domain(origin))
-  }
-
-  trackGetProfile (address, profileExisted, status, origin) {
-    const data = {}
-    data.event = 'api_get_profile'
-    data.properties = { address: address, profile_existed: profileExisted, status, origin: domain(origin) }
-    this._track(data, domain(origin))
-  }
-
-  trackGetProfiles (status, origin) {
-    const data = {}
-    data.event = 'api_get_profiles'
-    data.properties = { status, origin: domain(origin) }
-    this._track(data, domain(origin))
-  }
-}
-
 module.exports = (writeKey, active = true) => {
   const client = writeKey && active ? new SegmentAnalytics(writeKey) : null
-  return {
-    api: new AnalyticsAPI(client),
-    node: new AnalyticsNode(client)
-  }
+  return new Analytics(client)
 }

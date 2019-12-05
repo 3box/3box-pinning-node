@@ -30,12 +30,6 @@ const PUBLIC_IMAGE = { timeStamp: 13000, value: 'such picture' }
 const PRIVATE_SHH = { timeStamp: 14000, value: 'many secret' }
 const PRIVATE_QUIET = { timeStamp: 15000, value: 'wow!' }
 
-// Date we are representing (note the difference for time_S_tamp and the unit, ms -> seconds)
-const PROFILE = {
-  name: { timestamp: 12, value: 'very name' },
-  image: { timestamp: 13, value: 'such picture' }
-}
-
 // const PROFILE_ONLY_VALUES = {
 //   name: PUBLIC_NAME.value,
 //   image: PUBLIC_IMAGE.value
@@ -194,19 +188,6 @@ describe('Pinning', () => {
     expect(numOpenDBs).toEqual(0)
   })
 
-  it('should get profile correctly, when stores closed', async () => {
-    await closeAllStores(pinning)
-    const rsAddr = testClient.rootStore.address.toString()
-    const profile = await pinning.getProfile(rsAddr)
-    expect(profile).toEqual(PROFILE)
-  })
-
-  it('should get profile correctly, when stores open', async () => {
-    const rsAddr = testClient.rootStore.address.toString()
-    const profile = await pinning.getProfile(rsAddr)
-    expect(profile).toEqual(PROFILE)
-  })
-
   describe('Threads', () => {
     it('should pin thread correctly from client', async () => {
       await testClient.createThread(true)
@@ -222,13 +203,6 @@ describe('Pinning', () => {
       await responsesPromise
       // wait for thread to sync
       await new Promise((resolve, reject) => { setTimeout(resolve, 5000) })
-    })
-
-    it('should get tread post correctly', async () => {
-      const address = await pinning.getThreadAddress('3box.thread.myspace.coolthread', THREEID_MOCK.DID, false)
-      const posts = await pinning.getThread(address)
-      expect(posts[0].message).toEqual('a great post')
-      expect(posts[1].message).toEqual('another great post')
     })
 
     it('should sync pinned data to client', async () => {

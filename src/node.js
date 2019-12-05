@@ -29,7 +29,7 @@ const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
 
 function sendInfraMetrics () {
-  analyticsClient.node.trackInfraMetrics()
+  analyticsClient.trackInfraMetrics()
 }
 
 function prepareIPFSConfig () {
@@ -54,7 +54,7 @@ function prepareIPFSConfig () {
 
 async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient.node, orbitCacheRedisOpts, pubSubConfig)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
