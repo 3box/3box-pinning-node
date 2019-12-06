@@ -88,7 +88,6 @@ describe('Pinning', () => {
     analyticsMock = {
       trackPinDB: jest.fn(),
       trackSyncDB: jest.fn(),
-      trackInfraMetrics: jest.fn(),
       trackSpaceUpdate: jest.fn(),
       trackPublicUpdate: jest.fn(),
       trackRootUpdate: jest.fn(),

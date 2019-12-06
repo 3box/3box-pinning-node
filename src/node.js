@@ -28,10 +28,6 @@ const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
 
-function sendInfraMetrics () {
-  analyticsClient.trackInfraMetrics()
-}
-
 function prepareIPFSConfig () {
   if (AWS_BUCKET_NAME) {
     if (!IPFS_PATH || !AWS_BUCKET_NAME) {
@@ -58,7 +54,6 @@ async function start () {
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
-  setInterval(sendInfraMetrics, 1800000)
 }
 
 start()
