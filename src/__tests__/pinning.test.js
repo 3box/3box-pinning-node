@@ -36,15 +36,15 @@ const PROFILE = {
   image: { timestamp: 13, value: 'such picture' }
 }
 
-const PROFILE_ONLY_VALUES = {
-  name: PUBLIC_NAME.value,
-  image: PUBLIC_IMAGE.value
-}
+// const PROFILE_ONLY_VALUES = {
+//   name: PUBLIC_NAME.value,
+//   image: PUBLIC_IMAGE.value
+// }
 
-const PRIV_IMG_ONLY_VALUES = {
-  quiet: PRIVATE_QUIET.value,
-  shh: PRIVATE_SHH.value
-}
+// const PRIV_IMG_ONLY_VALUES = {
+//   quiet: PRIVATE_QUIET.value,
+//   shh: PRIVATE_SHH.value
+// }
 
 const THREEID_MOCK = {
   DID: 'did:3:asdfasdf',
@@ -66,15 +66,15 @@ const THREEID_MOCK = {
 const register3idResolver = () => registerMethod('3', async () => {
   return {
     '@context': 'https://w3id.org/did/v1',
-    'id': 'did:3:asdfasdf',
-    'publicKey': [{
-      'id': 'did:3:asdfasdf#signingKey',
-      'type': 'Secp256k1VerificationKey2018',
-      'publicKeyHex': '044f5c08e2150b618264c4794d99a22238bf60f1133a7f563e74fcf55ddb16748159872687a613545c65567d2b7a4d4e3ac03763e1d9a5fcfe512a371faa48a781'
+    id: 'did:3:asdfasdf',
+    publicKey: [{
+      id: 'did:3:asdfasdf#signingKey',
+      type: 'Secp256k1VerificationKey2018',
+      publicKeyHex: '044f5c08e2150b618264c4794d99a22238bf60f1133a7f563e74fcf55ddb16748159872687a613545c65567d2b7a4d4e3ac03763e1d9a5fcfe512a371faa48a781'
     }],
-    'authentication': [{
-      'type': 'Secp256k1SignatureAuthentication2018',
-      'publicKey': 'did:3:asdfasdf#signingKey'
+    authentication: [{
+      type: 'Secp256k1SignatureAuthentication2018',
+      publicKey: 'did:3:asdfasdf#signingKey'
     }]
   }
 })
@@ -103,7 +103,7 @@ describe('Pinning', () => {
       trackPinDBAddress: jest.fn(),
       trackSpaceUpdateByApp: jest.fn()
     }
-    pinning = new Pinning(cache, { repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
+    pinning = new Pinning({ repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
@@ -119,7 +119,7 @@ describe('Pinning', () => {
   it('should sync db correctly from client', async () => {
     await testClient.createDB(true)
     const responsesPromise = new Promise((resolve, reject) => {
-      let hasResponses = []
+      const hasResponses = []
       testClient.onMsg.mockImplementation((topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
           expect(data.numEntries).toEqual(0)
@@ -249,31 +249,10 @@ describe('Pinning', () => {
       // for some reason there is an issue with the db not getting fully
       // replicated in time even after the dbSyncPromise. Wait for 0.5 s
       await new Promise((resolve, reject) => { setTimeout(resolve, 500) })
-      let posts = await testClient.getThreadPosts()
+      const posts = await testClient.getThreadPosts()
       expect(posts[0].message).toEqual('a great post')
       expect(posts[1].message).toEqual('another great post')
     })
-  })
-
-  it('should update DB cache correctly', async () => {
-    const spaceDBAddr = '/orbitdb/QmManifestHash/3box.space.spaceName.keyvalue'
-    const publicDBAddr = '/orbitdb/QmManifestHash/somedata.public'
-    const rootStoreDBAddr = '/orbitdb/QmManifestHash/somedata.root'
-    pinning.listSpaces = jest.fn(() => 'spaces')
-    pinning.getProfile = jest.fn(() => 'profile')
-    pinning.getSpace = jest.fn(() => 'space')
-    pinning.getConfig = jest.fn(() => 'config')
-    await pinning.rewriteDBCache(rootStoreDBAddr)
-    expect(cache.write).toHaveBeenCalledWith(`space-list_${rootStoreDBAddr}`, 'spaces')
-    expect(cache.write).toHaveBeenCalledWith(`config_${rootStoreDBAddr}`, 'config')
-    cache.write.mockClear()
-    await pinning.rewriteDBCache(publicDBAddr, rootStoreDBAddr)
-    expect(cache.write).toHaveBeenCalledWith(rootStoreDBAddr, 'profile')
-    cache.write.mockClear()
-    await pinning.rewriteDBCache(spaceDBAddr, rootStoreDBAddr)
-    expect(cache.write).toHaveBeenCalledWith(`${rootStoreDBAddr}_spaceName`, 'space')
-    cache.write.mockClear()
-    await closeAllStores(pinning)
   })
 })
 
@@ -397,14 +376,14 @@ class TestClient {
 
   async getProfile () {
     const profile = this.pubStore.all
-    let parsedProfile = {}
+    const parsedProfile = {}
     Object.keys(profile).map(key => { parsedProfile[key] = profile[key].value })
     return parsedProfile
   }
 
   async getPrivImg () {
     const img = this.privStore.all
-    let parsedProfile = {}
+    const parsedProfile = {}
     Object.keys(img).map(key => { parsedProfile[key] = img[key].value })
     return parsedProfile
   }

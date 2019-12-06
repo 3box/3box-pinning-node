@@ -42,8 +42,7 @@
     "orbit-db-cache-redis": "0.0.3",
     "os-utils": "0.0.14",
     "redis": "^2.8.0",
-    "url-parse": "^1.4.7",
-    "yargs": "^14.2.0"
+    "url-parse": "^1.4.7"
   },
   "jest": {
     "testEnvironment": "node"
@@ -53,7 +52,8 @@
   },
   "devDependencies": {
     "jest": "^23.6.0",
-    "standard": "^14.1.0"
+    "standard": "^14.1.0",
+    "supertest": "^4.0.2"
   },
   "standard": {
     "env": [
