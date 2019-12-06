@@ -1,5 +1,4 @@
 const SegmentAnalytics = require('analytics-node')
-const Url = require('url-parse')
 const sha256 = require('js-sha256').sha256
 
 const hash = str => str === null ? null : Buffer.from(sha256.digest(str)).toString('hex')
