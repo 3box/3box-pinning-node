@@ -345,6 +345,7 @@ class Pinning {
           did = root ? await this.rootStoreToDID(root) : null
           if (analyticsFn && did) analyticsFn(did, true)
         }
+        this.trackUpdates(address, rootStoreAddress, did)
       })
     } else {
       await this.openDBs[address].dbPromise
@@ -374,6 +375,24 @@ class Pinning {
       return did
     } catch (e) {
       return null
+    }
+  }
+
+  async trackUpdates (odbAddress, rootStoreAddress, did) {
+    const split = odbAddress.split('.')
+    if (split[1] === 'space') {
+      const spaceName = split[2]
+      this.analytics.trackSpaceUpdate(odbAddress, spaceName, did)
+    } else if (split[1] === 'public') {
+      this.analytics.trackPublicUpdate(odbAddress, did)
+    } else if (split[1] === 'root') {
+      this.analytics.trackRootUpdate(did)
+    } else if (split[1] === 'thread') {
+      const threadName = split[2]
+      const threadSpace = split[3]
+      this.analytics.trackThreadUpdate(odbAddress, threadSpace, threadName)
+    } else if (split[1] === 'private') {
+      this.analytics.trackPrivateUpdate(odbAddress, did)
     }
   }
 
