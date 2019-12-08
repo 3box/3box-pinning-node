@@ -7,7 +7,7 @@ const timer = require('exectimer')
 const { resolveDID } = require('./util')
 const register3idResolver = require('3id-resolver')
 const registerMuportResolver = require('muport-did-resolver')
-const orbitDBCache = require('orbit-db-cache-redis')
+const OrbitDBCache = require('orbit-db-cache-redis')
 const {
   OdbIdentityProvider,
   LegacyIPFS3BoxAccessController,
@@ -106,8 +106,12 @@ class Pinning {
       directory: this.orbitdbPath
     }
     if (this.orbitCacheOpts) {
-      orbitOpts.cache = orbitDBCache(this.orbitCacheOpts)
+      orbitOpts.cache = new OrbitDBCache(this.orbitCacheOpts)
     }
+
+    // Identity not used, passes ref to 3ID orbit identity provider
+    orbitOpts.identity = await Identities.createIdentity({ id: 'nullid' })
+
     this.orbitdb = await OrbitDB3Box.createInstance(this.ipfs, orbitOpts)
     if (this.pubSubConfig) {
       const orbitOnMessage = this.orbitdb._onMessage.bind(this.orbitdb)
