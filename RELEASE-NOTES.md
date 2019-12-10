@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.8.0 - 2019-12-10
+* feat: remove profile API functionality
+
 ## v1.7.2 - 2019-12-02
 * fix: pin auth-data objects from rootstore
 

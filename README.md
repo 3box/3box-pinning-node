@@ -5,6 +5,11 @@
 
 The pinning node is an ipfs and orbit-db node that persists the data of 3box users.
 
+### Requirements
+
+- node v10
+- python v2
+
 ## Run as command line tool
 
 ```bash

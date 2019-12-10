@@ -61,8 +61,6 @@ class OrbitDB3Box extends OrbitDB {
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
-const FORTY_FIVE_SECONDS = 45 * 1000
-const NINETY_SECONDS = 2 * FORTY_FIVE_SECONDS
 const PINNING_ROOM = '3box-pinning'
 const rootEntryTypes = {
   SPACE: 'space',
@@ -71,16 +69,6 @@ const rootEntryTypes = {
 const IPFS_OPTIONS = {
   EXPERIMENTAL: {
     pubsub: true
-  }
-}
-
-const rejectOnError = (reject, f) => {
-  return (...args) => {
-    try {
-      return f(...args)
-    } catch (e) {
-      reject(e)
-    }
   }
 }
 
@@ -97,17 +85,15 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (cache, ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, runCacheServiceOnly, pubSubConfig) {
-    this.cache = cache
+  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
     this.orbitCacheOpts = orbitCacheOpts
-    this.runCacheServiceOnly = runCacheServiceOnly
     this.pubSubConfig = pubSubConfig
-    this.dbOpenInterval = this.runCacheServiceOnly ? NINETY_SECONDS : THIRTY_MINUTES
-    this.dbCheckCloseInterval = this.runCacheServiceOnly ? FORTY_FIVE_SECONDS : TEN_MINUTES
+    this.dbOpenInterval = THIRTY_MINUTES
+    this.dbCheckCloseInterval = TEN_MINUTES
   }
 
   async start () {
@@ -157,154 +143,6 @@ class Pinning {
     }
   }
 
-  async getProfile (address) {
-    return new Promise((resolve, reject) => {
-      try {
-        const pubStoreFromRoot = rejectOnError(reject, address => {
-          const profileEntry = this.openDBs[address].db
-            .iterator({ limit: -1 })
-            .collect()
-            .find(entry => {
-              if (!entry.payload.value.odbAddress) return false
-              return entry.payload.value.odbAddress.split('.')[1] === 'public'
-            })
-
-          const profileFromPubStore = rejectOnError(reject, address => {
-            const profile = this.openDBs[address].db.all
-            const parsedProfile = {}
-
-            Object.entries(profile)
-              .forEach(([k, v]) => {
-                const timestamp = Math.floor(v.timeStamp / 1000)
-                parsedProfile[k] = { value: v.value, timestamp }
-              })
-
-            resolve(parsedProfile)
-          })
-
-          this.openDB(profileEntry.payload.value.odbAddress, profileFromPubStore)
-        })
-        // we need to open substores on replicated, otherwise it will break
-        // the auto pinning if the user adds another store to their root store
-        this.openDB(address, pubStoreFromRoot, this._openSubStores.bind(this))
-      } catch (e) {
-        reject(e)
-      }
-    })
-  }
-
-  async listSpaces (address) {
-    return new Promise((resolve, reject) => {
-      const spacesFromRoot = address => {
-        const spaces = this.openDBs[address].db
-          .iterator({ limit: -1 })
-          .collect()
-          .reduce((list, entry) => {
-            if (!entry.payload.value.odbAddress) return list
-            const name = entry.payload.value.odbAddress.split('.')[2]
-            if (name) list.push(name)
-            return list
-          }, [])
-        resolve(spaces)
-      }
-      // we need to open substores on replicated, otherwise it will break
-      // the auto pinning if the user adds another store to their root store
-      this.openDB(address, spacesFromRoot, this._openSubStores.bind(this))
-    })
-  }
-
-  async getConfig (address) {
-    return new Promise((resolve, reject) => {
-      const spacesFromRoot = async address => {
-        const config = await this.openDBs[address].db
-          .iterator({ limit: -1 })
-          .collect()
-          .reduce(async (conf, entry) => {
-            conf = await conf
-            const value = entry.payload.value
-            if (value.type === rootEntryTypes.SPACE) {
-              if (!conf.spaces) conf.spaces = {}
-              const name = value.odbAddress.split('.')[2]
-              conf.spaces[name] = {
-                DID: value.DID
-              }
-            } else if (value.type === rootEntryTypes.ADDRESS_LINK) {
-              if (!conf.links) conf.links = []
-              const obj = (await this.ipfs.dag.get(value.data)).value
-              conf.links.push(obj)
-            }
-            return conf
-          }, Promise.resolve({}))
-        resolve(config)
-      }
-      // we need to open substores on replicated, otherwise it will break
-      // the auto pinning if the user adds another store to their root store
-      this.openDB(address, spacesFromRoot, this._openSubStores.bind(this))
-    })
-  }
-
-  async getSpace (address, name) {
-    return new Promise((resolve, reject) => {
-      const spaceStoreFromRoot = address => {
-        const spaceEntry = this.openDBs[address].db
-          .iterator({ limit: -1 })
-          .collect()
-          .find(entry => {
-            if (!entry.payload.value.odbAddress) return false
-            return entry.payload.value.odbAddress.split('.')[2] === name
-          })
-
-        const pubDataFromSpaceStore = address => {
-          const pubSpace = this.openDBs[address].db.all
-          const parsedSpace = Object.keys(pubSpace).reduce((obj, key) => {
-            if (key.startsWith('pub_')) {
-              const x = pubSpace[key]
-              const timestamp = Math.floor(x.timeStamp / 1000)
-              obj[key.slice(4)] = { value: x.value, timestamp }
-            }
-            return obj
-          }, {})
-          resolve(parsedSpace)
-        }
-        if (spaceEntry) {
-          this.openDB(spaceEntry.payload.value.odbAddress, pubDataFromSpaceStore)
-        } else {
-          resolve({})
-        }
-      }
-      // we need to open substores on replicated, otherwise it will break
-      // the auto pinning if the user adds another store to their root store
-      this.openDB(address, spaceStoreFromRoot, this._openSubStores.bind(this))
-    })
-  }
-
-  async getThreadAddress (name, firstModerator, members) {
-    return (await this.orbitdb._determineAddress(name, 'feed', {
-      accessController: {
-        type: 'thread-access',
-        threadName: name,
-        members,
-        firstModerator
-      }
-    }, false)).toString()
-  }
-
-  async getThread (address) {
-    return new Promise((resolve, reject) => {
-      const getThreadData = address => {
-        const posts = this.openDBs[address].db
-          .iterator({ limit: -1 })
-          .collect()
-          .map(entry => {
-            const post = Object.assign({ postId: entry.hash, author: entry.identity.id }, entry.payload.value)
-            return post
-          })
-        resolve(posts)
-      }
-      this.openDB(address, getThreadData)
-    })
-  }
-
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
     const tick = new timer.Tick('openDB')
     tick.start()
@@ -349,7 +187,7 @@ class Pinning {
           did = root ? await this.rootStoreToDID(root) : null
           if (analyticsFn && did) analyticsFn(did, true)
         }
-        this.rewriteDBCache(address, rootStoreAddress, did)
+        this.trackUpdates(address, rootStoreAddress, did)
       })
     } else {
       await this.openDBs[address].dbPromise
@@ -382,29 +220,16 @@ class Pinning {
     }
   }
 
-  async rewriteDBCache (odbAddress, rootStoreAddress, did) {
+  async trackUpdates (odbAddress, rootStoreAddress, did) {
     const split = odbAddress.split('.')
     if (split[1] === 'space') {
       const spaceName = split[2]
-      const space = await this.getSpace(rootStoreAddress, spaceName)
-      this.cache.write(`${rootStoreAddress}_${spaceName}`, space)
       this.analytics.trackSpaceUpdate(odbAddress, spaceName, did)
     } else if (split[1] === 'public') {
-      // the profile is only saved under the rootStoreAddress as key
-      const profile = await this.getProfile(rootStoreAddress)
-      this.cache.write(rootStoreAddress, profile)
       this.analytics.trackPublicUpdate(odbAddress, did)
     } else if (split[1] === 'root') {
-      // in this case odbAddress is the rootStoreAddress
-      const spaces = await this.listSpaces(odbAddress)
-      this.cache.write(`space-list_${odbAddress}`, spaces)
-      const config = await this.getConfig(odbAddress)
-      this.cache.write(`config_${odbAddress}`, config)
       this.analytics.trackRootUpdate(did)
     } else if (split[1] === 'thread') {
-      // thread cache is stored with the name of the DB
-      const posts = await this.getThread(odbAddress)
-      this.cache.write(odbAddress, posts)
       const threadName = split[2]
       const threadSpace = split[3]
       this.analytics.trackThreadUpdate(odbAddress, threadSpace, threadName)
@@ -419,7 +244,6 @@ class Pinning {
   }
 
   _openSubStores (address) {
-    if (this.runCacheServiceOnly) { return }
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect().filter(e => Boolean(e.payload.value.odbAddress))
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
