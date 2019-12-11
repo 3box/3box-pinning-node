@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "./node_modules/.bin/standard --verbose src/**",
     "test": "rm -rf ./tmp ;  mkdir -p ./tmp/test/one ; jest --forceExit --detectOpenHandles --coverage --runInBand",
-    "start": "node ./src/node.js"
+    "start": "node ./src/node.js",
+    "start:dev": "./node_modules/.bin/nodemon ./src/node.js"
   },
   "repository": {
     "type": "git",
@@ -34,12 +35,12 @@
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
     "ipfs": "^0.36.4",
-    "ipfs-log": "^4.3.6",
+    "ipfs-log": "~4.5.0",
     "js-sha256": "^0.9.0",
     "multihashes": "^0.4.14",
     "muport-did-resolver": "^0.3.1",
-    "orbit-db": "^0.21.4",
-    "orbit-db-cache-redis": "0.0.3",
+    "orbit-db": "^0.22.1",
+    "orbit-db-cache-redis": "0.1.0",
     "os-utils": "0.0.14",
     "redis": "^2.8.0"
   },
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "jest": "^23.6.0",
+    "nodemon": "^1.19.4",
     "standard": "^14.1.0",
     "supertest": "^4.0.2"
   },
