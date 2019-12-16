@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.9.0 - 2019-12-12
+* feat: up orbit-db v0.22.1, cache change, performance up
+
 ## v1.8.0 - 2019-12-10
 * feat: remove profile API functionality
 
