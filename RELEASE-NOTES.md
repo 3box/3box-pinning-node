@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.9.1 - 2019-12-18
+* fix: cache key write for db names with slashes, ie threads ac db
+
 ## v1.9.0 - 2019-12-12
 * feat: up orbit-db v0.22.1, cache change, performance up
 

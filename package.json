@@ -1,6 +1,6 @@
 {
   "name": "3box-pinning-node",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "IPFS Node that runs OrbitDB under the hood",
   "main": "src/node.js",
   "scripts": {
@@ -40,7 +40,7 @@
     "multihashes": "^0.4.14",
     "muport-did-resolver": "^0.3.1",
     "orbit-db": "^0.22.1",
-    "orbit-db-cache-redis": "^0.1.1",
+    "orbit-db-cache-redis": "^0.1.2",
     "os-utils": "0.0.14",
     "redis": "^2.8.0"
   },
