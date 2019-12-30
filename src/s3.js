@@ -23,7 +23,6 @@ const notALock = {
   }
 }
 
-
 const ipfsRepo = (config) => {
   const {
     path,
@@ -32,8 +31,8 @@ const ipfsRepo = (config) => {
     secretAccessKey,
     endpoint,
     s3ForcePathStyle,
-    signatureVersion,
-   } = config
+    signatureVersion
+  } = config
   const createIfMissing = false
 
   const storeConfig = {
@@ -45,7 +44,7 @@ const ipfsRepo = (config) => {
       secretAccessKey,
       endpoint,
       s3ForcePathStyle,
-      signatureVersion,
+      signatureVersion
     }),
     createIfMissing
   }

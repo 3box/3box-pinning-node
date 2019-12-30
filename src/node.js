@@ -44,7 +44,7 @@ function prepareIPFSConfig () {
       secretAccessKey: AWS_SECRET_ACCESS_KEY,
       endpoint: AWS_S3_ENDPOINT,
       s3ForcePathStyle: AWS_S3_ADDRESSING_STYLE === 'path',
-      signatureVersion: AWS_S3_SIGNATURE_VERSION,
+      signatureVersion: AWS_S3_SIGNATURE_VERSION
     })
     return { repo }
   } else if (IPFS_PATH) {
