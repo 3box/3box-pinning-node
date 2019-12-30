@@ -21,6 +21,9 @@ const HEALTHCHECK_PORT = process.env.HEALTHCHECK_PORT || 8081
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
+const AWS_S3_ENDPOINT = process.env.AWS_S3_ENDPOINT
+const AWS_S3_ADDRESSING_STYLE = process.env.AWS_S3_ADDRESSING_STYLE
+const AWS_S3_SIGNATURE_VERSION = process.env.AWS_S3_SIGNATURE_VERSION
 
 const INSTANCE_ID = randInt(10000000000).toString()
 
@@ -38,7 +41,10 @@ function prepareIPFSConfig () {
       path: IPFS_PATH,
       bucket: AWS_BUCKET_NAME,
       accessKeyId: AWS_ACCESS_KEY_ID,
-      secretAccessKey: AWS_SECRET_ACCESS_KEY
+      secretAccessKey: AWS_SECRET_ACCESS_KEY,
+      endpoint: AWS_S3_ENDPOINT,
+      s3ForcePathStyle: AWS_S3_ADDRESSING_STYLE === 'path',
+      signatureVersion: AWS_S3_SIGNATURE_VERSION,
     })
     return { repo }
   } else if (IPFS_PATH) {
