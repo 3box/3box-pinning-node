@@ -61,7 +61,6 @@ class OrbitDB3Box extends OrbitDB {
 
 const TEN_MINUTES = 10 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
-const PINNING_ROOM = '3box-pinning'
 const rootEntryTypes = {
   SPACE: 'space',
   ADDRESS_LINK: 'address-link'
@@ -85,13 +84,14 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig) {
+  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
     this.orbitCacheOpts = orbitCacheOpts
     this.pubSubConfig = pubSubConfig
+    this.pinningRoom = pinningRoom
     this.dbOpenInterval = THIRTY_MINUTES
     this.dbCheckCloseInterval = TEN_MINUTES
   }
@@ -120,7 +120,7 @@ class Pinning {
       this.orbitdb._onMessage = messageBroker.onMessageWrap.bind(messageBroker)
     }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
-    this.pubsub.subscribe(PINNING_ROOM, this._onMessage.bind(this), this._onNewPeer.bind(this))
+    this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
     setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
   }
 
@@ -290,7 +290,7 @@ class Pinning {
       dataObj.numEntries = data
     } else if (type === 'REPLICATED') {
     }
-    this.pubsub.publish(PINNING_ROOM, dataObj)
+    this.pubsub.publish(this.pinningRoom, dataObj)
   }
 
   _onMessage (topic, data) {

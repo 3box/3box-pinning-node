@@ -16,6 +16,7 @@ const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
 const PUBSUB_REDIS_PATH = process.env.PUBSUB_REDIS_PATH
+const PINNING_ROOM = process.env.PINNING_ROOM || '3box-pinning'
 const HEALTHCHECK_PORT = process.env.HEALTHCHECK_PORT || 8081
 
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME
@@ -56,7 +57,7 @@ function prepareIPFSConfig () {
 
 async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
