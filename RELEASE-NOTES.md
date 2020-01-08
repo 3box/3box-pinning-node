@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.10.0 - 2019-01-08
+* feat: allow additional S3 client options to be configured for endpoint, addressing style and signature version
+* feat: allow pinning room channel to be configured
+
 ## v1.9.1 - 2019-12-18
 * fix: cache key write for db names with slashes, ie threads ac db
 
