@@ -77,6 +77,8 @@ const cache = {
   write: jest.fn()
 }
 
+jest.mock('redis', () => { return require('redis-mock')})
+
 describe('Pinning', () => {
   let pinning
   let testClient
