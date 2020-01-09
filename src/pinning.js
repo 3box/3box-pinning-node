@@ -51,12 +51,6 @@ class OrbitDB3Box extends OrbitDB {
     await this.stores[address].ready
     super._onMessage(address, heads)
   }
-
-  // block head exchange with peer until ready
-  async _onPeerConnected (address, peer) {
-    await this.stores[address].ready
-    super._onPeerConnected(address, peer)
-  }
 }
 
 const TEN_MINUTES = 10 * 60 * 1000
