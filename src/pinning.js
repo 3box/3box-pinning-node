@@ -23,6 +23,8 @@ AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessCo
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 
+const manifestCacheKey = address => `${address}/_manifest`
+
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
 // Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
 // fix implemented below.
@@ -247,22 +249,36 @@ class Pinning {
     }
   }
 
-  async _sendHasResponse (address) {
-    const numEntries = await this.entriesCache.get(address) || 0
-    this._publish('HAS_ENTRIES', address, numEntries)
+  async _sendHasResponse (address, numEntries) {
+    const cacheEntries = numEntries || await this.entriesCache.get(address)
+    const resNumEntries = cacheEntries || 0
+    if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return false
+    this._publish('HAS_ENTRIES', address, resNumEntries)
+    return true
+  }
+
+  async _dbOpenedBefore (address) {
+    const val = await this.orbitdb.cache.get(manifestCacheKey(address))
+    return Boolean(val)
   }
 
   _cacheNumEntries (address) {
     const numEntries = this.openDBs[address].db._oplog.values.length
     this.entriesCache.set(address, numEntries)
+    return numEntries
   }
 
-  _openSubStores (address) {
+  _cacheNumEntriesAndSend (address) {
+    const numEntries = this._cacheNumEntries(address)
+    this._sendHasResponse(address, numEntries)
+  }
+
+  async _openSubStores (address) {
     const entries = this.openDBs[address].db.iterator({ limit: -1 }).collect().filter(e => Boolean(e.payload.value.odbAddress))
     const uniqueEntries = entries.filter((e1, i, a) => {
       return a.findIndex(e2 => e2.payload.value.odbAddress === e1.payload.value.odbAddress) === i
     })
-    uniqueEntries.map(entry => {
+    uniqueEntries.map(async entry => {
       const data = entry.payload.value
       if (data.type === rootEntryTypes.SPACE) {
         // don't open db if the space entry is malformed
@@ -270,8 +286,9 @@ class Pinning {
         pinDID(data.DID)
       }
       if (data.odbAddress) {
-        this._sendHasResponse(data.odbAddress)
-        this.openDB(data.odbAddress, this._cacheNumEntries.bind(this), null, address)
+        const sent = await this._sendHasResponse(data.odbAddress)
+        const openCb = (sent ? this._cacheNumEntries : this._cacheNumEntriesAndSend).bind(this)
+        this.openDB(data.odbAddress, openCb, null, address)
       }
     })
 
@@ -290,9 +307,11 @@ class Pinning {
     })
   }
 
-  _openSubStoresAndCacheEntries (address) {
-    this._cacheNumEntries(address)
-    this._openSubStores(address)
+  _openSubStoresAndCacheEntries (sendRes) {
+    return address => {
+      sendRes ? this._cacheNumEntriesAndSend(address) : this._cacheNumEntries(address)
+      this._openSubStores(address)
+    }
   }
 
   _publish (type, odbAddress, data) {
@@ -304,15 +323,16 @@ class Pinning {
     this.pubsub.publish(this.pinningRoom, dataObj)
   }
 
-  _onMessage (topic, data) {
+  async _onMessage (topic, data) {
     console.log(topic, data)
     if (OrbitDB.isValidAddress(data.odbAddress)) {
-      this._sendHasResponse(data.odbAddress)
+      const sent = await this._sendHasResponse(data.odbAddress)
       if (data.type === 'PIN_DB') {
-        this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
+        this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries(!sent).bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
         this.analytics.trackPinDBAddress(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
-        this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
+        const openCb = (sent ? this._cacheNumEntries : this._cacheNumEntriesAndSend).bind(this)
+        this.openDB(data.odbAddress, openCb)
         this.analytics.trackSyncDB(data.odbAddress)
       }
       if (data.did) {
