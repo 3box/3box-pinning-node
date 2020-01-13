@@ -96,7 +96,7 @@ describe('Pinning', () => {
       trackPinDBAddress: jest.fn(),
       trackSpaceUpdateByApp: jest.fn()
     }
-    pinning = new Pinning({ repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock)
+    pinning = new Pinning({ repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock, undefined, undefined, PINNING_ROOM)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
     await Promise.all([pinning.start(), testClient.init()])
