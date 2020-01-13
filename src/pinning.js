@@ -62,11 +62,6 @@ const rootEntryTypes = {
   SPACE: 'space',
   ADDRESS_LINK: 'address-link'
 }
-const IPFS_OPTIONS = {
-  EXPERIMENTAL: {
-    pubsub: true
-  }
-}
 
 const pinDID = async did => {
   if (!did) return
@@ -95,7 +90,7 @@ class Pinning {
   }
 
   async start () {
-    this.ipfs = await this._initIpfs()
+    this.ipfs = await IPFS.create(this.ipfsConfig)
     register3idResolver(this.ipfs)
     registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
@@ -334,16 +329,6 @@ class Pinning {
 
   _onNewPeer (topic, peer) {
     console.log('peer joined room', topic, peer)
-  }
-
-  async _initIpfs () {
-    // Create IPFS instance
-    const config = { ...IPFS_OPTIONS, ...this.ipfsConfig }
-    const ipfs = new IPFS(config)
-    return new Promise((resolve, reject) => {
-      ipfs.on('error', (e) => console.error(e))
-      ipfs.on('ready', () => resolve(ipfs))
-    })
   }
 }
 
