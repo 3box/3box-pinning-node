@@ -1,7 +1,7 @@
 const redis = require('redis')
 
 const encode = (value) => (typeof value === 'string' ? value : value.toString())
-const decode = (value) => parseInt(value)
+const decode = (value) => value ? parseInt(value) : null
 
 class EntriesCache {
   constructor (redisOpts = {}) {

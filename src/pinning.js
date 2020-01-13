@@ -23,6 +23,8 @@ AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessCo
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 
+const manifestCacheKey = address => `${address}/_manifest`
+
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
 // Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
 // fix implemented below.
@@ -247,13 +249,24 @@ class Pinning {
     }
   }
 
-  async _sendHasResponse (address) {
-    const numEntries = await this.entriesCache.get(address) || 0
-    this._publish('HAS_ENTRIES', address, numEntries)
+  async _sendHasResponse (address, numEntries) {
+    const cacheEntries = numEntries || await this.entriesCache.get(address)
+    // line can be removed in future
+    if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
+    this._publish('HAS_ENTRIES', address, cacheEntries || 0)
   }
 
-  _cacheNumEntries (address) {
+  async _dbOpenedBefore (address) {
+    const val = await this.orbitdb.cache.get(manifestCacheKey(address))
+    return Boolean(val)
+  }
+
+  async _cacheNumEntries (address) {
     const numEntries = this.openDBs[address].db._oplog.values.length
+    // 2 lines can be removed in future
+    const notCachedBefore = await this.entriesCache.get(address) === null
+    if (notCachedBefore) this._sendHasResponse(address, numEntries)
+
     this.entriesCache.set(address, numEntries)
   }
 

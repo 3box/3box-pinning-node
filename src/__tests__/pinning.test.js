@@ -101,6 +101,8 @@ describe('Pinning', () => {
     pinning = new Pinning({ repo: IPFS_PATH_1 }, ODB_PATH_1, analyticsMock, undefined, undefined, PINNING_ROOM)
     testClient = new TestClient()
     testClient.onMsg = jest.fn()
+
+    pinning._dbOpenedBefore = jest.fn().mockReturnValue(false)
     await Promise.all([pinning.start(), testClient.init()])
 
     register3idResolver()
