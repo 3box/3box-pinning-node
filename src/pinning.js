@@ -8,6 +8,7 @@ const { resolveDID } = require('./util')
 const register3idResolver = require('3id-resolver')
 const registerMuportResolver = require('muport-did-resolver')
 const OrbitDBCache = require('orbit-db-cache-redis')
+const EntriesCache = require('./hasEntriesCache')
 const {
   OdbIdentityProvider,
   LegacyIPFS3BoxAccessController,
@@ -21,6 +22,8 @@ const IPFSLog = require('ipfs-log')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
+
+const manifestCacheKey = address => `${address}/_manifest`
 
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
 // Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
@@ -78,7 +81,7 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom) {
+  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
@@ -86,6 +89,7 @@ class Pinning {
     this.orbitCacheOpts = orbitCacheOpts
     this.pubSubConfig = pubSubConfig
     this.pinningRoom = pinningRoom
+    this.entriesNumCacheOpts = entriesNumCacheOpts
     this.dbOpenInterval = THIRTY_MINUTES
     this.dbCheckCloseInterval = TEN_MINUTES
   }
@@ -102,6 +106,8 @@ class Pinning {
     if (this.orbitCacheOpts) {
       orbitOpts.cache = new OrbitDBCache(this.orbitCacheOpts)
     }
+
+    this.entriesCache = new EntriesCache(this.entriesNumCacheOpts)
 
     // Identity not used, passes ref to 3ID orbit identity provider
     orbitOpts.identity = await Identities.createIdentity({ id: 'nullid' })
@@ -185,6 +191,7 @@ class Pinning {
           did = root ? await this.rootStoreToDID(root) : null
           if (analyticsFn && did) analyticsFn(did, true)
         }
+        this._cacheNumEntries(address)
         this.trackUpdates(address, rootStoreAddress, did)
       })
     } else {
@@ -236,9 +243,25 @@ class Pinning {
     }
   }
 
-  _sendHasResponse (address) {
+  async _sendHasResponse (address, numEntries) {
+    const cacheEntries = numEntries || await this.entriesCache.get(address)
+    // line can be removed in future
+    if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
+    this._publish('HAS_ENTRIES', address, cacheEntries || 0)
+  }
+
+  async _dbOpenedBefore (address) {
+    const val = await this.orbitdb.cache.get(manifestCacheKey(address))
+    return Boolean(val)
+  }
+
+  async _cacheNumEntries (address) {
     const numEntries = this.openDBs[address].db._oplog.values.length
-    this._publish('HAS_ENTRIES', address, numEntries)
+    // 2 lines can be removed in future
+    const notCachedBefore = await this.entriesCache.get(address) === null
+    if (notCachedBefore) this._sendHasResponse(address, numEntries)
+
+    this.entriesCache.set(address, numEntries)
   }
 
   _openSubStores (address) {
@@ -254,7 +277,8 @@ class Pinning {
         pinDID(data.DID)
       }
       if (data.odbAddress) {
-        this.openDB(data.odbAddress, this._sendHasResponse.bind(this), null, address)
+        this._sendHasResponse(data.odbAddress)
+        this.openDB(data.odbAddress, this._cacheNumEntries.bind(this), null, address)
       }
     })
 
@@ -273,8 +297,8 @@ class Pinning {
     })
   }
 
-  _openSubStoresAndSendHasResponse (address) {
-    this._sendHasResponse(address)
+  _openSubStoresAndCacheEntries (address) {
+    this._cacheNumEntries(address)
     this._openSubStores(address)
   }
 
@@ -290,11 +314,12 @@ class Pinning {
   _onMessage (topic, data) {
     console.log(topic, data)
     if (OrbitDB.isValidAddress(data.odbAddress)) {
+      this._sendHasResponse(data.odbAddress)
       if (data.type === 'PIN_DB') {
-        this.openDB(data.odbAddress, this._openSubStoresAndSendHasResponse.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
+        this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
         this.analytics.trackPinDBAddress(data.odbAddress)
       } else if (data.type === 'SYNC_DB' && data.thread) {
-        this.openDB(data.odbAddress, this._sendHasResponse.bind(this))
+        this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
         this.analytics.trackSyncDB(data.odbAddress)
       }
       if (data.did) {
