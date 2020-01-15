@@ -244,7 +244,8 @@ class Pinning {
   }
 
   async _sendHasResponse (address, numEntries) {
-    const cacheEntries = numEntries || await this.entriesCache.get(address)
+    const cacheEntries = typeof numEntries === 'number' ? numEntries : await this.entriesCache.get(address)
+
     // line can be removed in future
     if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
     this._publish('HAS_ENTRIES', address, cacheEntries || 0)
