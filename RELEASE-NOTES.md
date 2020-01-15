@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.11.0 - 2019-01-15
+Includes performance improvements that will allow syncing to start sooner on client
+and for onSync done to resolve more quickly.
+
+* feat: cache has entries and send on message
+* feat: send heads on connect, with orbit fix, remove wait
+
 ## v1.10.0 - 2019-01-08
 * feat: allow additional S3 client options to be configured for endpoint, addressing style and signature version
 * feat: allow pinning room channel to be configured
