@@ -25,7 +25,7 @@ const ipfsRepo = (config) => {
     s3ForcePathStyle,
     signatureVersion
   } = config
-  const createIfMissing = false
+  const createIfMissing = true
 
   const storeConfig = {
     s3: new S3({
