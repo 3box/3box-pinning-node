@@ -56,7 +56,7 @@ function prepareIPFSConfig () {
 
   let swarmAddresses = [
     '/ip4/0.0.0.0/tcp/4002',
-    '/ip4/127.0.0.1/tcp/4003/ws',
+    '/ip4/127.0.0.1/tcp/4003/ws'
   ]
   if (process.env.RENDEZVOUS_ADDRESS) {
     swarmAddresses = [...swarmAddresses, process.env.RENDEZVOUS_ADDRESS]
@@ -68,7 +68,7 @@ function prepareIPFSConfig () {
     config: {
       Bootstrap: [],
       Addresses: {
-        Swarm: swarmAddresses,
+        Swarm: swarmAddresses
       }
     }
   }
