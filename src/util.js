@@ -76,6 +76,10 @@ class Util {
   static randInt (max) {
     return Math.floor(Math.random() * max)
   }
+
+  static isBooleanStringSet (boolString) {
+    return typeof boolString == 'string' && !['0', 'f', 'false', 'no', 'off'].includes(boolString.toLowerCase())
+  }
 }
 
 module.exports = Util
