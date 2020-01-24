@@ -240,7 +240,7 @@ class Pinning {
     }
   }
 
-  _shouldHandlePinRequest(pinRequestMessage) {
+  _shouldHandlePinRequest (pinRequestMessage) {
     return !this.pinWhitelistDids || (pinRequestMessage && this.pinWhitelistDids.includes(pinRequestMessage.did))
   }
 

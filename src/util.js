@@ -78,7 +78,7 @@ class Util {
   }
 
   static isBooleanStringSet (boolString) {
-    return typeof boolString == 'string' && !['0', 'f', 'false', 'no', 'off'].includes(boolString.toLowerCase())
+    return typeof boolString === 'string' && !['0', 'f', 'false', 'no', 'off'].includes(boolString.toLowerCase())
   }
 }
 
