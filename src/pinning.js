@@ -76,7 +76,7 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinSilent) {
+  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
@@ -88,6 +88,7 @@ class Pinning {
     this.dbOpenInterval = THIRTY_MINUTES
     this.dbCheckCloseInterval = TEN_MINUTES
     this.pinWhitelistDids = pinWhitelistDids
+    this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
   }
 
@@ -244,6 +245,11 @@ class Pinning {
     return !this.pinWhitelistDids || (pinRequestMessage && this.pinWhitelistDids.includes(pinRequestMessage.did))
   }
 
+  _shouldPinSpace (rootEntry) {
+    const spaceName = rootEntry.odbAddress.split('.')[2]
+    return !this.pinWhitelistSpaces || (this.pinWhitelistSpaces.includes(spaceName))
+  }
+
   async _sendHasResponse (address, numEntries) {
     if (this.pinSilent) {
       return
@@ -280,6 +286,7 @@ class Pinning {
       if (data.type === rootEntryTypes.SPACE) {
         // don't open db if the space entry is malformed
         if (!data.DID || !data.odbAddress) return
+        if (!this._shouldPinSpace(data)) return
         pinDID(data.DID)
       }
       if (data.odbAddress) {
