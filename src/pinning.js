@@ -250,6 +250,11 @@ class Pinning {
     return !this.pinWhitelistSpaces || (this.pinWhitelistSpaces.includes(spaceName))
   }
 
+  _shouldSyncThread (syncRequestMessage) {
+    const spaceName = syncRequestMessage.odbAddress.split('.')[3]
+    return !this.pinWhitelistSpaces || (this.pinWhitelistSpaces.includes(spaceName))
+  }
+
   async _sendHasResponse (address, numEntries) {
     if (this.pinSilent) {
       return
@@ -330,7 +335,7 @@ class Pinning {
       if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
         this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
         this.analytics.trackPinDBAddress(data.odbAddress)
-      } else if (data.type === 'SYNC_DB' && data.thread) {
+      } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
         this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
         this.analytics.trackSyncDB(data.odbAddress)
       }
