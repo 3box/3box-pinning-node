@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.12.0 - 2019-01-28
+* feat: upgrade `orbit-db` to v0.23.1
+* feat: upgrade `ipfs` to v0.40.0
+* feat: add parameter for only pinning content for specified root DIDs
+* feat: add parameter for only pinning content for specified space names
+* feat: add parameter for silently pinning content
+
 ## v1.11.0 - 2019-01-15
 Includes performance improvements that will allow syncing to start sooner on client
 and for onSync done to resolve more quickly.

@@ -58,3 +58,11 @@ Configurations for both production and development environments can be found in 
     $ (sudo) npm run start -- --runCacheService=false
 
 The profile caching service also uses a Redis cache to cache requests. This is disabled by default in development. And can generally be disabled by not setting the env variable `REDIS_PATH`.
+
+To only handle a subset of pinning requests, you can use the DID and space whitelist options. These are configured with the `PIN_WHITELIST_DIDS` and `PIN_WHITELIST_SPACES` environment variables, which are comma-separated lists (no whitespace between items). For example:
+```
+PIN_WHITELIST_DIDS=did:3:bafyreie2i5l7fttwgzluctidfgbskyx47gjl2illqmbpp3vh4axacxpkqm,did:3:bafyreigwzej3toirnjur5ur3z3qwefnmrwonhlpok5dapfmgmc2i3sv2je
+PIN_WHITELIST_SPACES=abc,def
+```
+
+In addition, the PIN_SILENT environment variable can be set to `true` if the pinning node should not send responses to pin and sync requests (on private and 3rd party nodes, for example).
