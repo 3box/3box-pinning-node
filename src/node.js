@@ -29,6 +29,7 @@ const AWS_S3_SIGNATURE_VERSION = process.env.AWS_S3_SIGNATURE_VERSION
 
 const PIN_SILENT = isBooleanStringSet(process.env.PIN_SILENT)
 const PIN_WHITELIST_DIDS = process.env.PIN_WHITELIST_DIDS ? process.env.PIN_WHITELIST_DIDS.split(',') : null
+const PIN_WHITELIST_SPACES = process.env.PIN_WHITELIST_SPACES ? process.env.PIN_WHITELIST_SPACES.split(',') : null
 
 const INSTANCE_ID = randInt(10000000000).toString()
 
@@ -81,7 +82,7 @@ function prepareIPFSConfig () {
 
 async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_SILENT)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
