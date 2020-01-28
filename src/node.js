@@ -4,7 +4,7 @@ const path = require('path')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const analytics = require('./analytics')
-const { randInt } = require('./util')
+const { randInt, isBooleanStringSet } = require('./util')
 const HealthcheckService = require('./healthcheckService')
 
 const env = process.env.NODE_ENV || 'development'
@@ -26,6 +26,9 @@ const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 const AWS_S3_ENDPOINT = process.env.AWS_S3_ENDPOINT
 const AWS_S3_ADDRESSING_STYLE = process.env.AWS_S3_ADDRESSING_STYLE
 const AWS_S3_SIGNATURE_VERSION = process.env.AWS_S3_SIGNATURE_VERSION
+
+const PIN_SILENT = isBooleanStringSet(process.env.PIN_SILENT)
+const PIN_WHITELIST_DIDS = process.env.PIN_WHITELIST_DIDS ? process.env.PIN_WHITELIST_DIDS.split(',') : null
 
 const INSTANCE_ID = randInt(10000000000).toString()
 
@@ -78,7 +81,7 @@ function prepareIPFSConfig () {
 
 async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_SILENT)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
