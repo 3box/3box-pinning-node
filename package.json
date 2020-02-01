@@ -54,7 +54,7 @@
   "devDependencies": {
     "jest": "^23.6.0",
     "nodemon": "^1.19.4",
-    "redis-mock": "^0.47.0",
+    "redis-mock": "^0.48.0",
     "standard": "^14.1.0",
     "supertest": "^4.0.2"
   },
