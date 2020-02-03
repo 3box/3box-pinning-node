@@ -67,16 +67,6 @@ class TestClient {
     await this._tmpDir.cleanup()
   }
 
-  async reset () {
-    await Promise.all([
-      this.rootStore.drop(),
-      this.pubStore.drop(),
-      this.privStore.drop()
-    ])
-    await this.orbitdb.stop()
-    await this.pubsub.disconnect()
-  }
-
   onMsg () { }
 
   async createDB (withData) {
@@ -102,14 +92,6 @@ class TestClient {
         await this.privStore.put(key, withData.private[key])
       }
     }
-  }
-
-  async dropDB () {
-    await Promise.all([
-      this.rootStore.drop(),
-      this.pubStore.drop(),
-      this.privStore.drop()
-    ])
   }
 
   announceDB () {
@@ -160,11 +142,6 @@ class TestClient {
         await this.thread.add(entry)
       }
     }
-  }
-
-  async dropThread () {
-    await this.thread.drop()
-    await this.thread.close()
   }
 
   async announceThread () {

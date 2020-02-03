@@ -50,14 +50,6 @@ const mockThreadEntries = [
   { message: 'another great post' }
 ]
 
-async function closeAllPinningNodeStores (pinning) {
-  const promises = Object.keys(pinning.openDBs).map(async key => {
-    await pinning.openDBs[key].db.close()
-    delete pinning.openDBs[key]
-  })
-  await Promise.all(promises)
-}
-
 describe('Pinning', () => {
   let tmpDir
   let pinning
@@ -96,6 +88,7 @@ describe('Pinning', () => {
 
   afterEach(async () => {
     await testClient.cleanup()
+    await pinning.entriesCache.store.flushall()
     await pinning.stop()
     await tmpDir.cleanup()
   })
