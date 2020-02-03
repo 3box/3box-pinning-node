@@ -103,18 +103,18 @@ describe('Pinning', () => {
   it('should sync db correctly from client', async () => {
     await testClient.createDB(mockProfileData)
     const responsesPromise = new Promise((resolve, reject) => {
-      const hasResponses = []
+      const hasResponses = {}
       testClient.onMsg = (topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
-          expect(data.numEntries).toEqual(0)
-          if (hasResponses.indexOf(data.odbAddress) === -1) {
-            hasResponses.push(data.odbAddress)
+          const storeType = data.odbAddress.split('.')[1]
+          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+            hasResponses[storeType] = data.numEntries
           }
         }
-        if (hasResponses.length === 3) {
-          expect(hasResponses).toContain(testClient.rootStore.address.toString())
-          expect(hasResponses).toContain(testClient.pubStore.address.toString())
-          expect(hasResponses).toContain(testClient.privStore.address.toString())
+        if (Object.keys(hasResponses).length === 3
+            && hasResponses.root == 2
+            && hasResponses.public == Object.keys(mockProfileData.public).length
+            && hasResponses.private == Object.keys(mockProfileData.private).length) {
           resolve()
         }
       }
@@ -127,23 +127,24 @@ describe('Pinning', () => {
     // -- Create databases on the pinning node using the test client
     await testClient.createDB(mockProfileData)
     const responsesPromise = new Promise((resolve, reject) => {
-      const hasResponses = []
+      const hasResponses = {}
       testClient.onMsg = (topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
-          if (hasResponses.indexOf(data.odbAddress) === -1) {
-            hasResponses.push(data.odbAddress)
+          const storeType = data.odbAddress.split('.')[1]
+          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+            hasResponses[storeType] = data.numEntries
           }
         }
-        if (hasResponses.length === 3) {
+        if (Object.keys(hasResponses).length === 3
+            && hasResponses.root == 2
+            && hasResponses.public == Object.keys(mockProfileData.public).length
+            && hasResponses.private == Object.keys(mockProfileData.private).length) {
           resolve()
         }
       }
     })
     await testClient.announceDB()
     await responsesPromise
-
-    // We have to wait manually for the remote db to sync all entries because we have no sync event
-    await new Promise(resolve => setTimeout(resolve, 3000))
 
     // -- Create new client with no data
     const client2IpfsOpts = defaultsDeep({
@@ -180,23 +181,24 @@ describe('Pinning', () => {
   it('dbs should close after 30 min, but not before', async () => {
     await testClient.createDB(mockProfileData)
     const responsesPromise = new Promise((resolve, reject) => {
-      const hasResponses = []
+      const hasResponses = {}
       testClient.onMsg = (topic, data) => {
         if (data.type === 'HAS_ENTRIES') {
-          if (hasResponses.indexOf(data.odbAddress) === -1) {
-            hasResponses.push(data.odbAddress)
+          const storeType = data.odbAddress.split('.')[1]
+          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+            hasResponses[storeType] = data.numEntries
           }
         }
-        if (hasResponses.length === 3) {
+        if (Object.keys(hasResponses).length === 3
+            && hasResponses.root == 2
+            && hasResponses.public == Object.keys(mockProfileData.public).length
+            && hasResponses.private == Object.keys(mockProfileData.private).length) {
           resolve()
         }
       }
     })
     await testClient.announceDB()
     await responsesPromise
-
-    // We have to wait manually for the remote db to sync all entries because we have no sync event
-    await new Promise(resolve => setTimeout(resolve, 3000))
 
     pinning.checkAndCloseDBs()
     let numOpenDBs = Object.keys(pinning.openDBs).length
@@ -222,56 +224,65 @@ describe('Pinning', () => {
     beforeEach(async () => {
       await testClient.createDB(mockProfileData)
       const responsesPromise = new Promise((resolve, reject) => {
-        const hasResponses = []
+        const hasResponses = {}
         testClient.onMsg = (topic, data) => {
           if (data.type === 'HAS_ENTRIES') {
-            if (hasResponses.indexOf(data.odbAddress) === -1) {
-              hasResponses.push(data.odbAddress)
+            const storeType = data.odbAddress.split('.')[1]
+            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+              hasResponses[storeType] = data.numEntries
             }
           }
-          if (hasResponses.length === 3) {
+          if (Object.keys(hasResponses).length === 3
+              && hasResponses.root == 2
+              && hasResponses.public == Object.keys(mockProfileData.public).length
+              && hasResponses.private == Object.keys(mockProfileData.private).length) {
             resolve()
           }
         }
       })
       await testClient.announceDB()
       await responsesPromise
-
-      // We have to wait manually for the remote db to sync all entries because we have no sync event
-      await new Promise(resolve => setTimeout(resolve, 3000))
     })
 
     it('should pin thread correctly from client', async () => {
       await testClient.createThread(mockThreadEntries)
       const responsesPromise = new Promise((resolve, reject) => {
+        const hasResponses = {}
         testClient.onMsg = (topic, data) => {
           if (data.type === 'HAS_ENTRIES') {
-            expect(data.numEntries).toEqual(0)
+            const storeType = data.odbAddress.split('.')[1]
+            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+              hasResponses[storeType] = data.numEntries
+            }
+          }
+          if (hasResponses.thread == 2) {
             resolve()
           }
         }
       })
       await testClient.announceThread()
       await responsesPromise
-      // wait for thread to sync
-      await new Promise((resolve, reject) => { setTimeout(resolve, 5000) })
     })
 
     it('should sync pinned data to client', async () => {
       // -- Create thread on the pinning node using the test client
       await testClient.createThread(mockThreadEntries)
       const responsesPromise = new Promise((resolve, reject) => {
+        const hasResponses = {}
         testClient.onMsg = (topic, data) => {
           if (data.type === 'HAS_ENTRIES') {
+            const storeType = data.odbAddress.split('.')[1]
+            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+              hasResponses[storeType] = data.numEntries
+            }
+          }
+          if (hasResponses.thread == 2) {
             resolve()
           }
         }
       })
       await testClient.announceThread()
       await responsesPromise
-
-      // We have to wait manually for the remote db to sync all entries because we have no sync event
-      await new Promise(resolve => setTimeout(resolve, 3000))
 
       // -- Create new client with no data
       const client2IpfsOpts = defaultsDeep({
