@@ -1,7 +1,6 @@
 const Pinning = require('../pinning')
 
 const defaultsDeep = require('lodash.defaultsdeep')
-const path = require('path')
 const tmp = require('tmp-promise')
 tmp.setGracefulCleanup()
 
@@ -100,10 +99,10 @@ describe('Pinning', () => {
             hasResponses[storeType] = data.numEntries
           }
         }
-        if (Object.keys(hasResponses).length === 3
-            && hasResponses.root == 2
-            && hasResponses.public == Object.keys(mockProfileData.public).length
-            && hasResponses.private == Object.keys(mockProfileData.private).length) {
+        if (Object.keys(hasResponses).length === 3 &&
+            hasResponses.root === 2 &&
+            hasResponses.public === Object.keys(mockProfileData.public).length &&
+            hasResponses.private === Object.keys(mockProfileData.private).length) {
           resolve()
         }
       }
@@ -124,10 +123,10 @@ describe('Pinning', () => {
             hasResponses[storeType] = data.numEntries
           }
         }
-        if (Object.keys(hasResponses).length === 3
-            && hasResponses.root == 2
-            && hasResponses.public == Object.keys(mockProfileData.public).length
-            && hasResponses.private == Object.keys(mockProfileData.private).length) {
+        if (Object.keys(hasResponses).length === 3 &&
+            hasResponses.root === 2 &&
+            hasResponses.public === Object.keys(mockProfileData.public).length &&
+            hasResponses.private === Object.keys(mockProfileData.private).length) {
           resolve()
         }
       }
@@ -178,10 +177,10 @@ describe('Pinning', () => {
             hasResponses[storeType] = data.numEntries
           }
         }
-        if (Object.keys(hasResponses).length === 3
-            && hasResponses.root == 2
-            && hasResponses.public == Object.keys(mockProfileData.public).length
-            && hasResponses.private == Object.keys(mockProfileData.private).length) {
+        if (Object.keys(hasResponses).length === 3 &&
+            hasResponses.root === 2 &&
+            hasResponses.public === Object.keys(mockProfileData.public).length &&
+            hasResponses.private === Object.keys(mockProfileData.private).length) {
           resolve()
         }
       }
@@ -221,10 +220,10 @@ describe('Pinning', () => {
               hasResponses[storeType] = data.numEntries
             }
           }
-          if (Object.keys(hasResponses).length === 3
-              && hasResponses.root == 2
-              && hasResponses.public == Object.keys(mockProfileData.public).length
-              && hasResponses.private == Object.keys(mockProfileData.private).length) {
+          if (Object.keys(hasResponses).length === 3 &&
+              hasResponses.root === 2 &&
+              hasResponses.public === Object.keys(mockProfileData.public).length &&
+              hasResponses.private === Object.keys(mockProfileData.private).length) {
             resolve()
           }
         }
@@ -244,7 +243,7 @@ describe('Pinning', () => {
               hasResponses[storeType] = data.numEntries
             }
           }
-          if (hasResponses.thread == 0) {
+          if (hasResponses.thread === 0) {
             resolve()
           }
         }
@@ -254,12 +253,12 @@ describe('Pinning', () => {
     })
 
     // TODO: reproduce root failure of following tests (see https://github.com/3box/3box-pinning-node/issues/288)
-    it.skip('Test to reproduce error in retrieving the thread access node consecutive times', async() => {
+    it.skip('Test to reproduce error in retrieving the thread access node consecutive times', async () => {
       await testClient.createThread(mockThreadEntries)
       const CID = require('cids')
-      let cid = new CID('zdpuAqS4Qc9Ff3uuUyT6juCpsC7waWw6NDVqtdPYYL9EZRnYx')
+      const cid = new CID('zdpuAqS4Qc9Ff3uuUyT6juCpsC7waWw6NDVqtdPYYL9EZRnYx')
       console.log('STARTING')
-      for (i = 0; i < 10; i++) {
+      for (let i = 0; i < 10; i++) {
         console.log('fetching...', i)
         console.log('MANIFEST', await pinning.ipfs.dag.get(cid))
         // without this delay, consecutive calls fail
@@ -279,7 +278,7 @@ describe('Pinning', () => {
               hasResponses[storeType] = data.numEntries
             }
           }
-          if (hasResponses.thread == 2) {
+          if (hasResponses.thread === 2) {
             resolve()
           }
         }
@@ -301,7 +300,7 @@ describe('Pinning', () => {
               hasResponses[storeType] = data.numEntries
             }
           }
-          if (hasResponses.thread == 2) {
+          if (hasResponses.thread === 2) {
             resolve()
           }
         }
