@@ -118,16 +118,24 @@ class Pinning {
       this.orbitdb._onMessage = messageBroker.onMessageWrap.bind(messageBroker)
     }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
-    this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
-    setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
+    await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
+    this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
   }
 
-  checkAndCloseDBs () {
-    Object.keys(this.openDBs).map(async key => {
+  async stop () {
+    clearInterval(this._dbCloseinterval)
+    await this.pubsub.disconnect()
+    await this.checkAndCloseDBs()
+    await this.orbitdb.stop()
+    await this.ipfs.stop()
+  }
+
+  async checkAndCloseDBs () {
+    await Promise.all(Object.keys(this.openDBs).map(async key => {
       if (Date.now() > this.openDBs[key].latestTouch + this.dbOpenInterval) {
         await this.dbClose(key)
       }
-    })
+    }))
   }
 
   async dbClose (address) {
@@ -264,7 +272,7 @@ class Pinning {
 
     // line can be removed in future
     if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
-    this._publish('HAS_ENTRIES', address, cacheEntries || 0)
+    await this._publish('HAS_ENTRIES', address, cacheEntries || 0)
   }
 
   async _dbOpenedBefore (address) {
@@ -320,7 +328,7 @@ class Pinning {
     this._openSubStores(address)
   }
 
-  _publish (type, odbAddress, data) {
+  async _publish (type, odbAddress, data) {
     const dataObj = { type, odbAddress }
     if (type === 'HAS_ENTRIES') {
       dataObj.numEntries = data

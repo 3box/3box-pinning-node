@@ -17,19 +17,19 @@ class MessageBroker extends Pubsub {
 
   async subscribe (topic, onMessageCallback, onNewPeerCallback) {
     this.messageClientSub.subscribe(topic)
-    super.subscribe(topic, onMessageCallback, onNewPeerCallback)
+    return super.subscribe(topic, onMessageCallback, onNewPeerCallback)
   }
 
   async unsubscribe (topic) {
     this.messageClientSub.unsubscribe(topic)
-    super.unsubscribe(topic)
+    return super.unsubscribe(topic)
   }
 
-  messageHandler (topic, rawMessage) {
+  async messageHandler (topic, rawMessage) {
     const message = messageParse(rawMessage)
     if (message.from === this.instanceId) return
     this.onMessageCallback(topic, message.heads)
-    super.publish(topic, message.heads)
+    return super.publish(topic, message.heads)
   }
 
   onMessageWrap (address, heads) {
