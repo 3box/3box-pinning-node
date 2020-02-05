@@ -1,6 +1,6 @@
 const Pinning = require('../pinning')
 
-const EventEmitter = require('events');
+const EventEmitter = require('events')
 
 const defaultsDeep = require('lodash.defaultsdeep')
 const tmp = require('tmp-promise')
@@ -57,7 +57,7 @@ function addReplicatedEmitter (pinning) {
   function myOpenDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
     const newReplicatedFn = (odbAddress) => {
       const numEntries = pinning.openDBs[odbAddress].db._oplog.values.length
-      pinning.events.emit('replicated', {odbAddress, numEntries})
+      pinning.events.emit('replicated', { odbAddress, numEntries })
       if (onReplicatedFn) {
         onReplicatedFn(odbAddress)
       }
@@ -67,8 +67,6 @@ function addReplicatedEmitter (pinning) {
   pinning.openDB = myOpenDB
   return pinning
 }
-
-
 
 describe('Pinning', () => {
   let tmpDir
@@ -279,7 +277,7 @@ describe('Pinning', () => {
           if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
             pinningStoreEntries[storeType] = data.numEntries
           }
-          if (pinningStoreEntries.thread == 2) {
+          if (pinningStoreEntries.thread === 2) {
             pinning.events.off('replicated', checkIfThreadCreated)
             resolve()
           }
@@ -302,7 +300,7 @@ describe('Pinning', () => {
           if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
             pinningStoreEntries[storeType] = data.numEntries
           }
-          if (pinningStoreEntries.thread == 2) {
+          if (pinningStoreEntries.thread === 2) {
             pinning.events.off('replicated', checkIfThreadCreated)
             resolve()
           }
