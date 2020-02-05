@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const path = require('path')
+const IPFS = require('ipfs')
+const ipfsClient = require('ipfs-http-client')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const analytics = require('./analytics')
@@ -81,8 +83,15 @@ function prepareIPFSConfig () {
 }
 
 async function start () {
-  const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
+  let ipfs
+  if (process.env.IPFS_API_URL) {
+    ipfs = ipfsClient(process.env.IPFS_API_URL)
+  } else {
+    const ipfsConfig = prepareIPFSConfig()
+    ipfs = await IPFS.create(ipfsConfig)
+  }
+  
+  const pinning = new Pinning(ipfs, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
