@@ -90,6 +90,7 @@ class Pinning {
     this.pinWhitelistDids = pinWhitelistDids
     this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
+    this._intervals = []
   }
 
   async start () {
@@ -119,7 +120,7 @@ class Pinning {
     }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
-    setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
+    this._intervals.push(setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval))
   }
 
   async stop () {
@@ -127,6 +128,7 @@ class Pinning {
     await this.checkAndCloseDBs()
     await this.orbitdb.stop()
     await this.ipfs.stop()
+    this._intervals.forEach(clearInterval)
   }
 
   async checkAndCloseDBs () {
