@@ -90,7 +90,6 @@ class Pinning {
     this.pinWhitelistDids = pinWhitelistDids
     this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
-    this._intervals = []
   }
 
   async start () {
@@ -120,15 +119,15 @@ class Pinning {
     }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
-    this._intervals.push(setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval))
+    this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
   }
 
   async stop () {
+    clearInterval(this._dbCloseinterval)
     await this.pubsub.disconnect()
     await this.checkAndCloseDBs()
     await this.orbitdb.stop()
     await this.ipfs.stop()
-    this._intervals.forEach(clearInterval)
   }
 
   async checkAndCloseDBs () {
@@ -335,7 +334,7 @@ class Pinning {
       dataObj.numEntries = data
     } else if (type === 'REPLICATED') {
     }
-    await this.pubsub.publish(this.pinningRoom, dataObj)
+    this.pubsub.publish(this.pinningRoom, dataObj)
   }
 
   _onMessage (topic, data) {

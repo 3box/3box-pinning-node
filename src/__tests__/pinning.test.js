@@ -127,8 +127,23 @@ describe('Pinning', () => {
       }
       pinning.events.on('replicated', checkIfStoresReplicated)
     })
+    const responsesPromise = new Promise((resolve, reject) => {
+      const hasResponses = {}
+      testClient.onMsg = (topic, data) => {
+        if (data.type === 'HAS_ENTRIES') {
+          const storeType = data.odbAddress.split('.')[1]
+          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
+            hasResponses[storeType] = data.numEntries
+          }
+        }
+        if (['root', 'public', 'private'].every(storeType => storeType in hasResponses)) {
+          resolve()
+        }
+      }
+    })
     await testClient.announceDB()
     await pinningReplicatedPromise
+    await responsesPromise
   })
 
   it('should sync db correctly to client', async () => {
