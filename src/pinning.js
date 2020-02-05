@@ -282,7 +282,8 @@ class Pinning {
   async _cacheNumEntries (address) {
     const numEntries = this.openDBs[address].db._oplog.values.length
     // 2 lines can be removed in future
-    this._sendHasResponse(address, numEntries)
+    const notCachedBefore = await this.entriesCache.get(address) === null
+    if (notCachedBefore) this._sendHasResponse(address, numEntries)
 
     this.entriesCache.set(address, numEntries)
   }

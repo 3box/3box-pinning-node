@@ -1,5 +1,7 @@
 const Pinning = require('../pinning')
 
+const EventEmitter = require('events');
+
 const defaultsDeep = require('lodash.defaultsdeep')
 const tmp = require('tmp-promise')
 tmp.setGracefulCleanup()
@@ -49,6 +51,25 @@ const mockThreadEntries = [
   { message: 'another great post' }
 ]
 
+function addReplicatedEmitter (pinning) {
+  pinning.events = new EventEmitter()
+  const origOpenDB = pinning.openDB
+  function myOpenDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
+    const newReplicatedFn = (odbAddress) => {
+      const numEntries = pinning.openDBs[odbAddress].db._oplog.values.length
+      pinning.events.emit('replicated', {odbAddress, numEntries})
+      if (onReplicatedFn) {
+        onReplicatedFn(odbAddress)
+      }
+    }
+    origOpenDB.call(pinning, address, responseFn, newReplicatedFn, rootStoreAddress, analyticsFn)
+  }
+  pinning.openDB = myOpenDB
+  return pinning
+}
+
+
+
 describe('Pinning', () => {
   let tmpDir
   let pinning
@@ -80,6 +101,7 @@ describe('Pinning', () => {
     testClient = new TestClient(clientIpfsOpts, pinningRoom)
     await testClient.init()
     await registerMock3idResolver()
+    pinning = addReplicatedEmitter(pinning)
   })
 
   afterEach(async () => {
@@ -90,49 +112,49 @@ describe('Pinning', () => {
 
   it('should sync db correctly from client', async () => {
     await testClient.createDB(mockProfileData)
-    const responsesPromise = new Promise((resolve, reject) => {
-      const hasResponses = {}
-      testClient.onMsg = (topic, data) => {
-        if (data.type === 'HAS_ENTRIES') {
-          const storeType = data.odbAddress.split('.')[1]
-          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-            hasResponses[storeType] = data.numEntries
-          }
+    const pinningReplicatedPromise = new Promise((resolve) => {
+      const pinningStoreEntries = {}
+      const checkIfStoresReplicated = (data) => {
+        const storeType = data.odbAddress.split('.')[1]
+        if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
+          pinningStoreEntries[storeType] = data.numEntries
         }
-        if (Object.keys(hasResponses).length === 3 &&
-            hasResponses.root === 2 &&
-            hasResponses.public === Object.keys(mockProfileData.public).length &&
-            hasResponses.private === Object.keys(mockProfileData.private).length) {
+        if (Object.keys(pinningStoreEntries).length === 3 &&
+            pinningStoreEntries.root === 2 &&
+            pinningStoreEntries.public === Object.keys(mockProfileData.public).length &&
+            pinningStoreEntries.private === Object.keys(mockProfileData.private).length) {
+          pinning.events.off('replicated', checkIfStoresReplicated)
           resolve()
         }
       }
+      pinning.events.on('replicated', checkIfStoresReplicated)
     })
     await testClient.announceDB()
-    await responsesPromise
+    await pinningReplicatedPromise
   })
 
   it('should sync db correctly to client', async () => {
     // -- Create databases on the pinning node using the test client
     await testClient.createDB(mockProfileData)
-    const responsesPromise = new Promise((resolve, reject) => {
-      const hasResponses = {}
-      testClient.onMsg = (topic, data) => {
-        if (data.type === 'HAS_ENTRIES') {
-          const storeType = data.odbAddress.split('.')[1]
-          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-            hasResponses[storeType] = data.numEntries
-          }
+    const pinningReplicatedPromise = new Promise((resolve) => {
+      const pinningStoreEntries = {}
+      const checkIfStoresReplicated = (data) => {
+        const storeType = data.odbAddress.split('.')[1]
+        if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
+          pinningStoreEntries[storeType] = data.numEntries
         }
-        if (Object.keys(hasResponses).length === 3 &&
-            hasResponses.root === 2 &&
-            hasResponses.public === Object.keys(mockProfileData.public).length &&
-            hasResponses.private === Object.keys(mockProfileData.private).length) {
+        if (Object.keys(pinningStoreEntries).length === 3 &&
+            pinningStoreEntries.root === 2 &&
+            pinningStoreEntries.public === Object.keys(mockProfileData.public).length &&
+            pinningStoreEntries.private === Object.keys(mockProfileData.private).length) {
+          pinning.events.off('replicated', checkIfStoresReplicated)
           resolve()
         }
       }
+      pinning.events.on('replicated', checkIfStoresReplicated)
     })
     await testClient.announceDB()
-    await responsesPromise
+    await pinningReplicatedPromise
 
     // -- Create new client with no data
     const client2IpfsOpts = defaultsDeep({
@@ -168,27 +190,27 @@ describe('Pinning', () => {
 
   it('dbs should close after 30 min, but not before', async () => {
     await testClient.createDB(mockProfileData)
-    const responsesPromise = new Promise((resolve, reject) => {
-      const hasResponses = {}
-      testClient.onMsg = (topic, data) => {
-        if (data.type === 'HAS_ENTRIES') {
-          const storeType = data.odbAddress.split('.')[1]
-          if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-            hasResponses[storeType] = data.numEntries
-          }
+    const pinningReplicatedPromise = new Promise((resolve) => {
+      const pinningStoreEntries = {}
+      const checkIfStoresReplicated = (data) => {
+        const storeType = data.odbAddress.split('.')[1]
+        if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
+          pinningStoreEntries[storeType] = data.numEntries
         }
-        if (Object.keys(hasResponses).length === 3 &&
-            hasResponses.root === 2 &&
-            hasResponses.public === Object.keys(mockProfileData.public).length &&
-            hasResponses.private === Object.keys(mockProfileData.private).length) {
+        if (Object.keys(pinningStoreEntries).length === 3 &&
+            pinningStoreEntries.root === 2 &&
+            pinningStoreEntries.public === Object.keys(mockProfileData.public).length &&
+            pinningStoreEntries.private === Object.keys(mockProfileData.private).length) {
+          pinning.events.off('replicated', checkIfStoresReplicated)
           resolve()
         }
       }
+      pinning.events.on('replicated', checkIfStoresReplicated)
     })
     await testClient.announceDB()
-    await responsesPromise
+    await pinningReplicatedPromise
 
-    pinning.checkAndCloseDBs()
+    await pinning.checkAndCloseDBs()
     let numOpenDBs = Object.keys(pinning.openDBs).length
     expect(numOpenDBs).toEqual(3)
     // make 20 min pass
@@ -196,14 +218,14 @@ describe('Pinning', () => {
     Object.keys(pinning.openDBs).map(key => {
       pinning.openDBs[key].latestTouch -= 20 * 60 * 1000
     })
-    pinning.checkAndCloseDBs()
+    await pinning.checkAndCloseDBs()
     numOpenDBs = Object.keys(pinning.openDBs).length
     expect(numOpenDBs).toEqual(3)
     // make additional 10 min pass
     Object.keys(pinning.openDBs).map(key => {
       pinning.openDBs[key].latestTouch -= 10 * 60 * 1000
     })
-    pinning.checkAndCloseDBs()
+    await pinning.checkAndCloseDBs()
     numOpenDBs = Object.keys(pinning.openDBs).length
     expect(numOpenDBs).toEqual(0)
   })
@@ -211,45 +233,25 @@ describe('Pinning', () => {
   describe('Threads', () => {
     beforeEach(async () => {
       await testClient.createDB(mockProfileData)
-      const responsesPromise = new Promise((resolve, reject) => {
-        const hasResponses = {}
-        testClient.onMsg = (topic, data) => {
-          if (data.type === 'HAS_ENTRIES') {
-            const storeType = data.odbAddress.split('.')[1]
-            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-              hasResponses[storeType] = data.numEntries
-            }
+      const pinningReplicatedPromise = new Promise((resolve) => {
+        const pinningStoreEntries = {}
+        const checkIfStoresReplicated = (data) => {
+          const storeType = data.odbAddress.split('.')[1]
+          if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
+            pinningStoreEntries[storeType] = data.numEntries
           }
-          if (Object.keys(hasResponses).length === 3 &&
-              hasResponses.root === 2 &&
-              hasResponses.public === Object.keys(mockProfileData.public).length &&
-              hasResponses.private === Object.keys(mockProfileData.private).length) {
+          if (Object.keys(pinningStoreEntries).length === 3 &&
+              pinningStoreEntries.root === 2 &&
+              pinningStoreEntries.public === Object.keys(mockProfileData.public).length &&
+              pinningStoreEntries.private === Object.keys(mockProfileData.private).length) {
+            pinning.events.off('replicated', checkIfStoresReplicated)
             resolve()
           }
         }
+        pinning.events.on('replicated', checkIfStoresReplicated)
       })
       await testClient.announceDB()
-      await responsesPromise
-    })
-
-    it('should create the thread correctly from client', async () => {
-      await testClient.createThread(mockThreadEntries)
-      const responsesPromise = new Promise((resolve, reject) => {
-        const hasResponses = {}
-        testClient.onMsg = (topic, data) => {
-          if (data.type === 'HAS_ENTRIES') {
-            const storeType = data.odbAddress.split('.')[1]
-            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-              hasResponses[storeType] = data.numEntries
-            }
-          }
-          if (hasResponses.thread === 0) {
-            resolve()
-          }
-        }
-      })
-      await testClient.announceThread()
-      await responsesPromise
+      await pinningReplicatedPromise
     })
 
     // TODO: reproduce root failure of following tests (see https://github.com/3box/3box-pinning-node/issues/288)
@@ -269,44 +271,46 @@ describe('Pinning', () => {
     // TODO: fix (see https://github.com/3box/3box-pinning-node/issues/288)
     it.skip('should pin thread data correctly from client', async () => {
       await testClient.createThread(mockThreadEntries)
-      const responsesPromise = new Promise((resolve, reject) => {
-        const hasResponses = {}
-        testClient.onMsg = (topic, data) => {
-          if (data.type === 'HAS_ENTRIES') {
-            const storeType = data.odbAddress.split('.')[1]
-            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-              hasResponses[storeType] = data.numEntries
-            }
+      const pinningThreadCreatedPromise = new Promise((resolve) => {
+        const pinningStoreEntries = {}
+        const checkIfThreadCreated = (data) => {
+          console.log('replicated', data)
+          const storeType = data.odbAddress.split('.')[1]
+          if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
+            pinningStoreEntries[storeType] = data.numEntries
           }
-          if (hasResponses.thread === 2) {
+          if (pinningStoreEntries.thread == 2) {
+            pinning.events.off('replicated', checkIfThreadCreated)
             resolve()
           }
         }
+        pinning.events.on('replicated', checkIfThreadCreated)
       })
       await testClient.announceThread()
-      await responsesPromise
+      await pinningThreadCreatedPromise
     })
 
     // TODO: fix (see https://github.com/3box/3box-pinning-node/issues/288)
     it.skip('should sync pinned thread to client', async () => {
       // -- Create thread on the pinning node using the test client
       await testClient.createThread(mockThreadEntries)
-      const responsesPromise = new Promise((resolve, reject) => {
-        const hasResponses = {}
-        testClient.onMsg = (topic, data) => {
-          if (data.type === 'HAS_ENTRIES') {
-            const storeType = data.odbAddress.split('.')[1]
-            if (!hasResponses[storeType] || data.numEntries > hasResponses[storeType]) {
-              hasResponses[storeType] = data.numEntries
-            }
+      const pinningThreadCreatedPromise = new Promise((resolve) => {
+        const pinningStoreEntries = {}
+        const checkIfThreadCreated = (data) => {
+          console.log('replicated', data)
+          const storeType = data.odbAddress.split('.')[1]
+          if (!pinningStoreEntries[storeType] || data.numEntries > pinningStoreEntries[storeType]) {
+            pinningStoreEntries[storeType] = data.numEntries
           }
-          if (hasResponses.thread === 2) {
+          if (pinningStoreEntries.thread == 2) {
+            pinning.events.off('replicated', checkIfThreadCreated)
             resolve()
           }
         }
+        pinning.events.on('replicated', checkIfThreadCreated)
       })
       await testClient.announceThread()
-      await responsesPromise
+      await pinningThreadCreatedPromise
 
       // -- Create new client with no data
       const client2IpfsOpts = defaultsDeep({
