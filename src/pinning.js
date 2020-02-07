@@ -62,11 +62,6 @@ const rootEntryTypes = {
   SPACE: 'space',
   ADDRESS_LINK: 'address-link'
 }
-const IPFS_OPTIONS = {
-  EXPERIMENTAL: {
-    pubsub: true
-  }
-}
 
 const pinDID = async did => {
   if (!did) return
@@ -81,7 +76,7 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts) {
+  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent) {
     this.ipfsConfig = ipfsConfig
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
@@ -92,10 +87,13 @@ class Pinning {
     this.entriesNumCacheOpts = entriesNumCacheOpts
     this.dbOpenInterval = THIRTY_MINUTES
     this.dbCheckCloseInterval = TEN_MINUTES
+    this.pinWhitelistDids = pinWhitelistDids
+    this.pinWhitelistSpaces = pinWhitelistSpaces
+    this.pinSilent = pinSilent
   }
 
   async start () {
-    this.ipfs = await this._initIpfs()
+    this.ipfs = await IPFS.create(this.ipfsConfig)
     register3idResolver(this.ipfs)
     registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
@@ -120,16 +118,24 @@ class Pinning {
       this.orbitdb._onMessage = messageBroker.onMessageWrap.bind(messageBroker)
     }
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
-    this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
-    setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
+    await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
+    this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
   }
 
-  checkAndCloseDBs () {
-    Object.keys(this.openDBs).map(async key => {
+  async stop () {
+    clearInterval(this._dbCloseinterval)
+    await this.pubsub.disconnect()
+    await this.checkAndCloseDBs()
+    await this.orbitdb.stop()
+    await this.ipfs.stop()
+  }
+
+  async checkAndCloseDBs () {
+    await Promise.all(Object.keys(this.openDBs).map(async key => {
       if (Date.now() > this.openDBs[key].latestTouch + this.dbOpenInterval) {
         await this.dbClose(key)
       }
-    })
+    }))
   }
 
   async dbClose (address) {
@@ -243,12 +249,30 @@ class Pinning {
     }
   }
 
+  _shouldHandlePinRequest (pinRequestMessage) {
+    return !this.pinWhitelistDids || (pinRequestMessage && this.pinWhitelistDids.includes(pinRequestMessage.did))
+  }
+
+  _shouldPinSpace (rootEntry) {
+    const spaceName = rootEntry.odbAddress.split('.')[2]
+    return !this.pinWhitelistSpaces || (this.pinWhitelistSpaces.includes(spaceName))
+  }
+
+  _shouldSyncThread (syncRequestMessage) {
+    const spaceName = syncRequestMessage.odbAddress.split('.')[3]
+    return !this.pinWhitelistSpaces || (this.pinWhitelistSpaces.includes(spaceName))
+  }
+
   async _sendHasResponse (address, numEntries) {
+    if (this.pinSilent) {
+      return
+    }
+
     const cacheEntries = typeof numEntries === 'number' ? numEntries : await this.entriesCache.get(address)
 
     // line can be removed in future
     if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
-    this._publish('HAS_ENTRIES', address, cacheEntries || 0)
+    await this._publish('HAS_ENTRIES', address, cacheEntries || 0)
   }
 
   async _dbOpenedBefore (address) {
@@ -275,6 +299,7 @@ class Pinning {
       if (data.type === rootEntryTypes.SPACE) {
         // don't open db if the space entry is malformed
         if (!data.DID || !data.odbAddress) return
+        if (!this._shouldPinSpace(data)) return
         pinDID(data.DID)
       }
       if (data.odbAddress) {
@@ -303,7 +328,7 @@ class Pinning {
     this._openSubStores(address)
   }
 
-  _publish (type, odbAddress, data) {
+  async _publish (type, odbAddress, data) {
     const dataObj = { type, odbAddress }
     if (type === 'HAS_ENTRIES') {
       dataObj.numEntries = data
@@ -313,13 +338,12 @@ class Pinning {
   }
 
   _onMessage (topic, data) {
-    console.log(topic, data)
     if (OrbitDB.isValidAddress(data.odbAddress)) {
       this._sendHasResponse(data.odbAddress)
-      if (data.type === 'PIN_DB') {
+      if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
         this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
         this.analytics.trackPinDBAddress(data.odbAddress)
-      } else if (data.type === 'SYNC_DB' && data.thread) {
+      } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
         this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
         this.analytics.trackSyncDB(data.odbAddress)
       }
@@ -334,16 +358,6 @@ class Pinning {
 
   _onNewPeer (topic, peer) {
     console.log('peer joined room', topic, peer)
-  }
-
-  async _initIpfs () {
-    // Create IPFS instance
-    const config = { ...IPFS_OPTIONS, ...this.ipfsConfig }
-    const ipfs = new IPFS(config)
-    return new Promise((resolve, reject) => {
-      ipfs.on('error', (e) => console.error(e))
-      ipfs.on('ready', () => resolve(ipfs))
-    })
   }
 }
 

@@ -4,7 +4,7 @@ const path = require('path')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const analytics = require('./analytics')
-const { randInt } = require('./util')
+const { randInt, isBooleanStringSet } = require('./util')
 const HealthcheckService = require('./healthcheckService')
 
 const env = process.env.NODE_ENV || 'development'
@@ -27,6 +27,10 @@ const AWS_S3_ENDPOINT = process.env.AWS_S3_ENDPOINT
 const AWS_S3_ADDRESSING_STYLE = process.env.AWS_S3_ADDRESSING_STYLE
 const AWS_S3_SIGNATURE_VERSION = process.env.AWS_S3_SIGNATURE_VERSION
 
+const PIN_SILENT = isBooleanStringSet(process.env.PIN_SILENT)
+const PIN_WHITELIST_DIDS = process.env.PIN_WHITELIST_DIDS ? process.env.PIN_WHITELIST_DIDS.split(',') : null
+const PIN_WHITELIST_SPACES = process.env.PIN_WHITELIST_SPACES ? process.env.PIN_WHITELIST_SPACES.split(',') : null
+
 const INSTANCE_ID = randInt(10000000000).toString()
 
 const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
@@ -35,12 +39,13 @@ const entriesNumRedisOpts = ENTRIES_NUM_REDIS_PATH ? { host: ENTRIES_NUM_REDIS_P
 const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
 
 function prepareIPFSConfig () {
+  let repo
   if (AWS_BUCKET_NAME) {
-    if (!IPFS_PATH || !AWS_BUCKET_NAME) {
+    if (!IPFS_PATH) {
       throw new Error('Invalid IPFS + s3 configuration')
     }
 
-    const repo = ipfsRepo({
+    repo = ipfsRepo({
       path: IPFS_PATH,
       bucket: AWS_BUCKET_NAME,
       accessKeyId: AWS_ACCESS_KEY_ID,
@@ -49,17 +54,35 @@ function prepareIPFSConfig () {
       s3ForcePathStyle: AWS_S3_ADDRESSING_STYLE === 'path',
       signatureVersion: AWS_S3_SIGNATURE_VERSION
     })
-    return { repo }
   } else if (IPFS_PATH) {
-    return { repo: IPFS_PATH }
+    repo = IPFS_PATH
   }
 
-  return {}
+  let swarmAddresses = [
+    '/ip4/0.0.0.0/tcp/4002',
+    '/ip4/127.0.0.1/tcp/4003/ws'
+  ]
+  if (process.env.RENDEZVOUS_ADDRESS) {
+    swarmAddresses = [...swarmAddresses, process.env.RENDEZVOUS_ADDRESS]
+  }
+
+  const ipfsOpts = {
+    repo,
+    preload: { enabled: false },
+    config: {
+      Bootstrap: [],
+      Addresses: {
+        Swarm: swarmAddresses
+      }
+    }
+  }
+
+  return ipfsOpts
 }
 
 async function start () {
   const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts)
+  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()
