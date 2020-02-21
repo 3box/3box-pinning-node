@@ -1,13 +1,15 @@
 const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
 const MessageBroker = require('./messageBroker')
-const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
 const { resolveDID } = require('./util')
 const register3idResolver = require('3id-resolver')
 const registerMuportResolver = require('muport-did-resolver')
 const OrbitDBCache = require('orbit-db-cache-redis')
 const EntriesCache = require('./hasEntriesCache')
+const { createWorker } = require('./pubSubWorker')
+const Pubsub = require('./orbitPubSubExt')
+const uuidv4 = require('uuid/v4')
 const {
   OdbIdentityProvider,
   LegacyIPFS3BoxAccessController,
@@ -89,6 +91,9 @@ class Pinning {
     this.pinWhitelistDids = pinWhitelistDids
     this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
+    this.coordinationTopic = 'worker-coordination-topic'
+    this._intervals = []
+    this._nodeId = uuidv4()
   }
 
   async start () {
@@ -115,6 +120,9 @@ class Pinning {
       this.orbitdb._pubsub = messageBroker
       this.orbitdb._onMessage = messageBroker.onMessageWrap.bind(messageBroker)
     }
+
+    this.worker = await createWorker(this.ipfs, this.coordinationTopic, { workerId: this._nodeId })
+
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
     this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
@@ -122,6 +130,7 @@ class Pinning {
 
   async stop () {
     clearInterval(this._dbCloseinterval)
+    await this.worker.stop()
     await this.pubsub.disconnect()
     await this.checkAndCloseDBs()
     await this.orbitdb.stop()
@@ -335,15 +344,38 @@ class Pinning {
     this.pubsub.publish(this.pinningRoom, dataObj)
   }
 
-  _onMessage (topic, data) {
+  async _onMessage (topic, data, from, seqno) {
     if (OrbitDB.isValidAddress(data.odbAddress)) {
       this._sendHasResponse(data.odbAddress)
+
       if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
-        this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
-        this.analytics.trackPinDBAddress(data.odbAddress)
+        const taskOpts = {
+          claimProperties: {
+            hasDbOpen: !!this.openDBs[data.odbAddress]
+          },
+          claimOrderBy: {
+            fields: ['claimProperties.hasDbOpen', 'timestamp'],
+            orders: ['desc', 'asc']
+          }
+        }
+        await this.worker.announceTask(seqno, async () => {
+          await this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
+          this.analytics.trackPinDBAddress(data.odbAddress)
+        }, taskOpts)
       } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
-        this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
-        this.analytics.trackSyncDB(data.odbAddress)
+        const taskOpts = {
+          claimProperties: {
+            hasDbOpen: !!this.openDBs[data.odbAddress]
+          },
+          claimOrderBy: {
+            fields: ['claimProperties.hasDbOpen', 'timestamp'],
+            orders: ['desc', 'asc']
+          }
+        }
+        await this.worker.announceTask(seqno, async () => {
+          await this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
+          this.analytics.trackSyncDB(data.odbAddress)
+        }, taskOpts)
       }
       if (data.did) {
         pinDID(data.did)
