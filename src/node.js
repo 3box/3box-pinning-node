@@ -90,7 +90,7 @@ async function start () {
     const ipfsConfig = prepareIPFSConfig()
     ipfs = await IPFS.create(ipfsConfig)
   }
-  
+
   const pinning = new Pinning(ipfs, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
