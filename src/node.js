@@ -82,10 +82,25 @@ function prepareIPFSConfig () {
   return ipfsOpts
 }
 
+async function retryBackoff (fn, maxBackoffTime = 60000) {
+  async function _retryBackoff (fn, maxBackoffTime, jitter, wait) {
+    if (wait > maxBackoffTime) return Promise.reject(new Error('Max backoff time exceeded'))
+    try {
+      return await fn()
+    } catch (e) {
+      console.warn(`call failed, retrying in ${wait} ms`)
+      await new Promise(resolve => setTimeout(resolve, wait + Math.random() * jitter))
+      return _retryBackoff(fn, maxBackoffTime, jitter, wait * 2)
+    }
+  }
+  return _retryBackoff(fn, maxBackoffTime, 100, 1000)
+}
+
 async function start () {
   let ipfs
   if (process.env.IPFS_API_URL) {
     ipfs = ipfsClient(process.env.IPFS_API_URL)
+    await retryBackoff(ipfs.id)
   } else {
     const ipfsConfig = prepareIPFSConfig()
     ipfs = await IPFS.create(ipfsConfig)
