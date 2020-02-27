@@ -1,4 +1,3 @@
-const IPFS = require('ipfs')
 const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
 const MessageBroker = require('./messageBroker')
@@ -76,8 +75,8 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (ipfsConfig, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent) {
-    this.ipfsConfig = ipfsConfig
+  constructor (ipfs, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent) {
+    this.ipfs = ipfs
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
     this.analytics = analytics
@@ -93,7 +92,6 @@ class Pinning {
   }
 
   async start () {
-    this.ipfs = await IPFS.create(this.ipfsConfig)
     register3idResolver(this.ipfs)
     registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
