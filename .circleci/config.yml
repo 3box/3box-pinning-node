@@ -79,6 +79,7 @@ workflows:
           tag: develop
           requires:
             - test
+          extra-build-args: --build-arg CODE_VERSION=${SHORT_GIT_HASH}
           filters:
             branches:
               only: develop
@@ -88,6 +89,7 @@ workflows:
           tag: latest
           requires:
             - test
+          extra-build-args: --build-arg CODE_VERSION=${SHORT_GIT_HASH}
           filters:
             branches:
               only: master
@@ -103,3 +105,7 @@ workflows:
           filters:
             branches:
               only: master
+
+machine:
+  environment:
+    SHORT_GIT_HASH: $(echo $CIRCLE_SHA1 | cut -c -7)
