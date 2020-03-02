@@ -1,13 +1,13 @@
 const express = require('express')
 const os = require('os-utils')
 
-const { createLogger } = require("./logger")
+const { createLogger } = require('./logger')
 
 class HealthcheckService {
   constructor (pinning, port) {
     this.pinning = pinning
     this.port = port
-    this.logger = createLogger({ name: "Pinning Server - HealthcheckService module" })
+    this.logger = createLogger({ name: 'healthcheckService' })
 
     this.app = express()
 

@@ -92,7 +92,7 @@ class Pinning {
     this.pinWhitelistDids = pinWhitelistDids
     this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
-    this.logger = createLogger({ name: "Pinning Server - Pinning Module" })
+    this.logger = createLogger({ name: 'pinning' })
   }
 
   async start () {
@@ -101,7 +101,7 @@ class Pinning {
     registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
 
-    this.logger.info("ipfsId", ipfsId)
+    this.logger.info('ipfsId', ipfsId)
 
     const orbitOpts = {
       directory: this.orbitdbPath
@@ -164,7 +164,7 @@ class Pinning {
     let root, did
 
     if (!this.openDBs[address]) {
-      this.logger.info("Opening db:", address)
+      this.logger.info('Opening db:', address)
 
       this.openDBs[address] = {
         dbPromise: new Promise((resolve, reject) => {
