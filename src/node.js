@@ -35,6 +35,8 @@ const PIN_WHITELIST_SPACES = process.env.PIN_WHITELIST_SPACES ? process.env.PIN_
 
 const INSTANCE_ID = randInt(10000000000).toString()
 
+const NODE_ID = process.env.NODE_ID
+
 const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 const entriesNumRedisOpts = ENTRIES_NUM_REDIS_PATH ? { host: ENTRIES_NUM_REDIS_PATH } : null
@@ -48,6 +50,7 @@ function prepareIPFSConfig () {
     }
 
     repo = ipfsRepo({
+      nodeId: NODE_ID,
       path: IPFS_PATH,
       bucket: AWS_BUCKET_NAME,
       accessKeyId: AWS_ACCESS_KEY_ID,
@@ -60,9 +63,11 @@ function prepareIPFSConfig () {
     repo = IPFS_PATH
   }
 
+  const baseSwarmPort = NODE_ID ? parseInt(`4${NODE_ID - 1}02`, 10) : 4002
+
   let swarmAddresses = [
-    '/ip4/0.0.0.0/tcp/4002',
-    '/ip4/127.0.0.1/tcp/4003/ws'
+    `/ip4/0.0.0.0/tcp/${baseSwarmPort}`,
+    `/ip4/127.0.0.1/tcp/${baseSwarmPort + 1}/ws`
   ]
   if (process.env.RENDEZVOUS_ADDRESS) {
     swarmAddresses = [...swarmAddresses, process.env.RENDEZVOUS_ADDRESS]
@@ -106,7 +111,7 @@ async function start () {
     ipfs = await IPFS.create(ipfsConfig)
   }
 
-  const pinning = new Pinning(ipfs, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
+  const pinning = new Pinning(ipfs, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT, NODE_ID)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()

@@ -17,6 +17,7 @@ const notALock = {
 
 const ipfsRepo = (config) => {
   const {
+    nodeId,
     path,
     bucket,
     accessKeyId,
@@ -27,10 +28,26 @@ const ipfsRepo = (config) => {
   } = config
   const createIfMissing = true
 
-  const storeConfig = {
+  console.log({nodeId})
+
+  const sharedStoreConfig = {
     s3: new S3({
       params: {
         Bucket: bucket
+      },
+      accessKeyId,
+      secretAccessKey,
+      endpoint,
+      s3ForcePathStyle,
+      signatureVersion
+    }),
+    createIfMissing
+  }
+
+  const selfStoreConfig = {
+    s3: new S3({
+      params: {
+        Bucket: nodeId ? `node-${nodeId}` : bucket
       },
       accessKeyId,
       secretAccessKey,
@@ -49,10 +66,10 @@ const ipfsRepo = (config) => {
       keys: S3Store
     },
     storageBackendOptions: {
-      blocks: storeConfig,
-      datastore: storeConfig,
-      root: storeConfig,
-      keys: storeConfig
+      blocks: sharedStoreConfig,
+      datastore: selfStoreConfig,
+      root: selfStoreConfig,
+      keys: selfStoreConfig
     },
     lock: notALock
   })

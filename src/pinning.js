@@ -77,7 +77,7 @@ const pinDID = async did => {
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
 class Pinning {
-  constructor (ipfs, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent) {
+  constructor (ipfs, orbitdbPath, analytics, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent, nodeId) {
     this.ipfs = ipfs
     this.orbitdbPath = orbitdbPath
     this.openDBs = {}
@@ -93,7 +93,7 @@ class Pinning {
     this.pinSilent = pinSilent
     this.coordinationTopic = 'worker-coordination-topic'
     this._intervals = []
-    this._nodeId = uuidv4()
+    this._nodeId = nodeId || uuidv4()
   }
 
   async start () {
@@ -182,6 +182,9 @@ class Pinning {
           this.orbitdb.open(address, cid.version === 0 ? opts : {}).then(db => {
             db.events.on('ready', () => {
               resolve(db)
+            })
+            db.events.on('replicated', (...args) => {
+              console.log('DB REPLICATED', {address, args})
             })
             db.load()
           })
@@ -346,16 +349,15 @@ class Pinning {
 
   async _onMessage (topic, data, from, seqno) {
     if (OrbitDB.isValidAddress(data.odbAddress)) {
-      this._sendHasResponse(data.odbAddress)
-
       if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
+        this._sendHasResponse(data.odbAddress)
         const taskOpts = {
           claimProperties: {
             hasDbOpen: !!this.openDBs[data.odbAddress]
           },
           claimOrderBy: {
-            fields: ['claimProperties.hasDbOpen', 'timestamp'],
-            orders: ['desc', 'asc']
+            fields: ['workerId', 'claimProperties.hasDbOpen', 'timestamp'],
+            orders: ['desc', 'desc', 'asc']
           }
         }
         await this.worker.announceTask(seqno, async () => {
@@ -363,6 +365,7 @@ class Pinning {
           this.analytics.trackPinDBAddress(data.odbAddress)
         }, taskOpts)
       } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
+        this._sendHasResponse(data.odbAddress)
         const taskOpts = {
           claimProperties: {
             hasDbOpen: !!this.openDBs[data.odbAddress]
