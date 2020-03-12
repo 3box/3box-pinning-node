@@ -1,5 +1,9 @@
 FROM node:10
 
+ARG CODE_VERSION="00000"
+
+ENV CODE_VERSION=${CODE_VERSION}
+
 WORKDIR /3box-pinning-server
 
 COPY package.json package-lock.json ./

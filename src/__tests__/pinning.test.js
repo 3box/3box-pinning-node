@@ -2,6 +2,7 @@ const Pinning = require('../pinning')
 
 const EventEmitter = require('events')
 
+const IPFS = require('ipfs')
 const defaultsDeep = require('lodash.defaultsdeep')
 const tmp = require('tmp-promise')
 tmp.setGracefulCleanup()
@@ -91,7 +92,8 @@ describe('Pinning', () => {
     const pinWhitelistSpaces = null
     const pinSilent = null
 
-    pinning = new Pinning(ipfsOpts, orbitdbPath, analyticsMock, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent)
+    const ipfs = await IPFS.create(ipfsOpts)
+    pinning = new Pinning(ipfs, orbitdbPath, analyticsMock, orbitCacheOpts, pubSubConfig, pinningRoom, entriesNumCacheOpts, pinWhitelistDids, pinWhitelistSpaces, pinSilent)
     await pinning.start()
     await pinning.entriesCache.store.flushall()
     const pinningAddresses = await pinning.ipfs.swarm.localAddrs()

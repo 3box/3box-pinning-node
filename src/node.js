@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const path = require('path')
+const IPFS = require('ipfs')
+const ipfsClient = require('ipfs-http-client')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const analytics = require('./analytics')
@@ -80,9 +82,31 @@ function prepareIPFSConfig () {
   return ipfsOpts
 }
 
+async function retryBackoff (fn, maxBackoffTime = 60000) {
+  async function _retryBackoff (fn, maxBackoffTime, jitter, wait) {
+    if (wait > maxBackoffTime) return Promise.reject(new Error('Max backoff time exceeded'))
+    try {
+      return await fn()
+    } catch (e) {
+      console.warn(`call failed, retrying in ${wait} ms`)
+      await new Promise(resolve => setTimeout(resolve, wait + Math.random() * jitter))
+      return _retryBackoff(fn, maxBackoffTime, jitter, wait * 2)
+    }
+  }
+  return _retryBackoff(fn, maxBackoffTime, 100, 1000)
+}
+
 async function start () {
-  const ipfsConfig = prepareIPFSConfig()
-  const pinning = new Pinning(ipfsConfig, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
+  let ipfs
+  if (process.env.IPFS_API_URL) {
+    ipfs = ipfsClient(process.env.IPFS_API_URL)
+    await retryBackoff(ipfs.id)
+  } else {
+    const ipfsConfig = prepareIPFSConfig()
+    ipfs = await IPFS.create(ipfsConfig)
+  }
+
+  const pinning = new Pinning(ipfs, ORBITDB_PATH, analyticsClient, orbitCacheRedisOpts, pubSubConfig, PINNING_ROOM, entriesNumRedisOpts, PIN_WHITELIST_DIDS, PIN_WHITELIST_SPACES, PIN_SILENT)
   await pinning.start()
   const healthcheckService = new HealthcheckService(pinning, HEALTHCHECK_PORT)
   healthcheckService.start()

@@ -1,10 +1,14 @@
 const express = require('express')
 const os = require('os-utils')
 
+const { createLogger } = require('./logger')
+
 class HealthcheckService {
   constructor (pinning, port) {
     this.pinning = pinning
     this.port = port
+    this.logger = createLogger({ name: 'healthcheckService' })
+
     this.app = express()
 
     this.app.get('/healthcheck', this.healthcheckHandler.bind(this))
@@ -19,7 +23,7 @@ class HealthcheckService {
   }
 
   start () {
-    this.app.listen(this.port, () => console.log(`Serving /healthcheck on port ${this.port}`))
+    this.app.listen(this.port, () => this.logger.info(`Serving /healthcheck on port ${this.port}`))
   }
 }
 
