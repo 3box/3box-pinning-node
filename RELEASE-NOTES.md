@@ -1,6 +1,6 @@
 # Release Notes
 
-## v1.13.0 - 2019-03-12
+## v1.13.0 - 2020-03-12
 * feat: add CODE_VERSION to dockerfile, circle ci image build step, and logger
 * feat: add bunyan logger
 
