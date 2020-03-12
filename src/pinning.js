@@ -18,6 +18,8 @@ const Identities = require('orbit-db-identity-provider')
 Identities.addIdentityProvider(OdbIdentityProvider)
 const AccessControllers = require('orbit-db-access-controllers')
 const IPFSLog = require('ipfs-log')
+const { createLogger } = require('./logger')
+
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
@@ -89,13 +91,16 @@ class Pinning {
     this.pinWhitelistDids = pinWhitelistDids
     this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
+    this.logger = createLogger({ name: 'pinning' })
   }
 
   async start () {
     register3idResolver(this.ipfs)
     registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
-    console.log(ipfsId)
+
+    this.logger.info('ipfsId', ipfsId)
+
     const orbitOpts = {
       directory: this.orbitdbPath
     }
@@ -157,7 +162,8 @@ class Pinning {
     let root, did
 
     if (!this.openDBs[address]) {
-      console.log('Opening db:', address)
+      this.logger.info('Opening db:', address)
+
       this.openDBs[address] = {
         dbPromise: new Promise((resolve, reject) => {
           const cid = new CID(address.split('/')[2])
@@ -355,7 +361,7 @@ class Pinning {
   }
 
   _onNewPeer (topic, peer) {
-    console.log('peer joined room', topic, peer)
+    this.logger.info('peer joined room', topic, peer)
   }
 }
 

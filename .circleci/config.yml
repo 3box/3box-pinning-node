@@ -1,6 +1,7 @@
 orbs:
   aws-cli: circleci/aws-cli@0.1.13
-  aws-ecr: circleci/aws-ecr@1.0.0
+  aws-ecr: circleci/aws-ecr@6.7.0
+
 version: 2.1
 
 jobs:
@@ -73,21 +74,23 @@ workflows:
   build-deploy:
     jobs:
       - test
-      - aws-ecr/build_and_push_image:
+      - aws-ecr/build-and-push-image:
           name: push-dev-image
           repo: 3box-pinning-server
           tag: develop
           requires:
             - test
+          extra-build-args: --build-arg CODE_VERSION=${CIRCLE_SHA1:0:7}
           filters:
             branches:
               only: develop
-      - aws-ecr/build_and_push_image:
+      - aws-ecr/build-and-push-image:
           name: push-prod-image
           repo: 3box-pinning-server
           tag: latest
           requires:
             - test
+          extra-build-args: --build-arg CODE_VERSION=${CIRCLE_SHA1:0:7}
           filters:
             branches:
               only: master
