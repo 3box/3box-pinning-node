@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.13.0 - 2019-03-12
+* feat: add CODE_VERSION to dockerfile, circle ci image build step, and logger
+* feat: add bunyan logger
+
 ## v1.12.0 - 2019-01-28
 * feat: upgrade `orbit-db` to v0.23.1
 * feat: upgrade `ipfs` to v0.40.0
