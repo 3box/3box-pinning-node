@@ -91,7 +91,7 @@ jobs:
             fi
       - slack/status:
           failure_message: Smoke tests failed for DEV environment
-          fail_only: false
+          fail_only: true
           webhook: $DISCORD_WEBHOOK_URL
 
   # Need seperate clusters if we have dev and prod, depends how we want to treat dev
