@@ -3,9 +3,9 @@ const OrbitDB = require('orbit-db')
 const MessageBroker = require('./messageBroker')
 const Pubsub = require('orbit-db-pubsub')
 const timer = require('exectimer')
-const { resolveDID } = require('./util')
-const register3idResolver = require('3id-resolver')
-const registerMuportResolver = require('muport-did-resolver')
+const { Resolver } = require('did-resolver')
+const get3IdResolver = require('3id-resolver').getResolver
+const getMuportResolver = require('muport-did-resolver').getResolver
 const OrbitDBCache = require('orbit-db-cache-redis')
 const EntriesCache = require('./hasEntriesCache')
 const {
@@ -64,15 +64,6 @@ const rootEntryTypes = {
   ADDRESS_LINK: 'address-link'
 }
 
-const pinDID = async did => {
-  if (!did) return
-  // We resolve the DID in order to pin the ipfs object
-  try {
-    await resolveDID(did)
-    // if this throws it's not a DID
-  } catch (e) {}
-}
-
 /**
   *  Pinning - a class for pinning orbitdb stores of 3box users
   */
@@ -95,9 +86,11 @@ class Pinning {
   }
 
   async start () {
-    register3idResolver(this.ipfs)
-    registerMuportResolver(this.ipfs)
     const ipfsId = await this.ipfs.id()
+    const threeIdResolver = get3IdResolver(this.ipfs)
+    const muportResolver = getMuportResolver(this.ipfs)
+    this._resolver = new Resolver({ ...threeIdResolver, ...muportResolver })
+    OdbIdentityProvider.setDidResolver(this._resolver)
 
     this.logger.info('ipfsId', ipfsId)
 
@@ -173,7 +166,8 @@ class Pinning {
             sortFn: IPFSLog.Sorting.SortByEntryHash, // this option is required now but will likely not be in the future.
             accessController: {
               type: 'legacy-ipfs-3box',
-              skipManifest: true
+              skipManifest: true,
+              resolver: this._resolver
             }
           }
           this.orbitdb.open(address, cid.version === 0 ? opts : {}).then(db => {
@@ -304,7 +298,7 @@ class Pinning {
         // don't open db if the space entry is malformed
         if (!data.DID || !data.odbAddress) return
         if (!this._shouldPinSpace(data)) return
-        pinDID(data.DID)
+        this._pinDID(data.DID)
       }
       if (data.odbAddress) {
         this._sendHasResponse(data.odbAddress)
@@ -325,6 +319,15 @@ class Pinning {
       await this.ipfs.dag.get(cid)
       this.ipfs.pin.add(cid)
     })
+  }
+
+  async _pinDID (did) {
+    if (!did) return
+    // We resolve the DID in order to pin the ipfs object
+    try {
+      await this._resolver.resolve(did)
+      // if this throws it's not a DID
+    } catch (e) {}
   }
 
   _openSubStoresAndCacheEntries (address) {
@@ -352,10 +355,10 @@ class Pinning {
         this.analytics.trackSyncDB(data.odbAddress)
       }
       if (data.did) {
-        pinDID(data.did)
+        this._pinDID(data.did)
       }
       if (data.muportDID) {
-        pinDID(data.muportDID)
+        this._pinDID(data.muportDID)
       }
     }
   }

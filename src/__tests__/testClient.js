@@ -4,6 +4,9 @@ tmp.setGracefulCleanup()
 
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
+const { Resolver } = require('did-resolver')
+const get3IdResolver = require('3id-resolver').getResolver
+const getMuportResolver = require('muport-did-resolver').getResolver
 const {
   OdbIdentityProvider,
   LegacyIPFS3BoxAccessController,
@@ -71,12 +74,17 @@ class TestClient {
 
   async createDB (withData) {
     const key = mock3id.getKeyringBySpaceName().getPublicKeys(true).signingKey
+    const threeIdResolver = get3IdResolver(this.ipfs)
+    const muportResolver = getMuportResolver(this.ipfs)
+    const resolver = new Resolver({...threeIdResolver, ...muportResolver})
+    OdbIdentityProvider.setDidResolver(resolver)
     const opts = {
       format: 'dag-pb',
       accessController: {
         write: [key],
         type: 'legacy-ipfs-3box',
-        skipManifest: true
+        skipManifest: true,
+        resolver,
       }
     }
     this.rootStore = await this.orbitdb.feed('rs.root', opts)

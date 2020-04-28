@@ -1,3 +1,8 @@
+jest.mock('3id-resolver', () => {
+  const { getMock3idResolver } = require('./mock3id')
+  return { getResolver: getMock3idResolver }
+})
+
 const Pinning = require('../pinning')
 
 const EventEmitter = require('events')
@@ -9,7 +14,6 @@ tmp.setGracefulCleanup()
 
 jest.mock('redis', () => { return require('redis-mock') })
 const TestClient = require('./testClient')
-const { registerMock3idResolver } = require('./mock3id')
 
 // Needed for ipfs spinup/teardown
 jest.setTimeout(15000)
@@ -100,7 +104,6 @@ describe('Pinning', () => {
     clientIpfsOpts = { config: { Bootstrap: pinningAddresses } }
     testClient = new TestClient(clientIpfsOpts, pinningRoom)
     await testClient.init()
-    await registerMock3idResolver()
     pinning = addReplicatedEmitter(pinning)
   })
 
