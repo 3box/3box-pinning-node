@@ -92,6 +92,11 @@ class Pinning {
     this._resolver = new Resolver({ ...threeIdResolver, ...muportResolver })
     OdbIdentityProvider.setDidResolver(this._resolver)
 
+    this._pinningResolver = new Resolver({
+      ...get3IdResolver(this.ipfs, { pin: true }),
+      ...getMuportResolver(this.ipfs)
+    })
+
     this.logger.info('ipfsId', ipfsId)
 
     const orbitOpts = {
@@ -325,7 +330,7 @@ class Pinning {
     if (!did) return
     // We resolve the DID in order to pin the ipfs object
     try {
-      await this._resolver.resolve(did)
+      await this._pinningResolver.resolve(did)
       // if this throws it's not a DID
     } catch (e) {}
   }
