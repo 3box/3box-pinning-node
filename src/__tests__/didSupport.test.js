@@ -4,7 +4,8 @@ const AccessControllers = require('orbit-db-access-controllers')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 const Util = require('../util')
 const { makeIPFS } = require('./tools')
-const registerMuportResolver = require('muport-did-resolver')
+const { Resolver } = require('did-resolver')
+const getMuportResolver = require('muport-did-resolver').getResolver
 
 const IPFS_PATH = './tmp/ipfs-did-1'
 const ODB_PATH = './tmp/orbitdb-did-1'
@@ -39,8 +40,8 @@ describe('basic low level functions are working', () => {
 
   test('did extract signing key', async () => {
     const ipfs = { cat: jest.fn(() => Promise.resolve(MANIFEST)) }
-    registerMuportResolver(ipfs)
-    const k = await Util.didExtractSigningKey(DID)
+    const resolver = new Resolver(getMuportResolver(ipfs))
+    const k = await Util.didExtractSigningKey(DID, { resolver })
     expect(k).toEqual('02d1f48e3d5c52954a01f1aa104bad1a22e2eed6ecbd4961737fbffa8d75457cd4')
   })
 })
