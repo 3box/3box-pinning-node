@@ -1,5 +1,10 @@
 # Release Notes
 
+## v1.14.0 - 2020-05-01
+
+* chore: upgrade did-resolver and did-jwt libraries
+* feat: add smoke tests to CI
+
 ## v1.13.0 - 2020-03-12
 * feat: add CODE_VERSION to dockerfile, circle ci image build step, and logger
 * feat: add bunyan logger

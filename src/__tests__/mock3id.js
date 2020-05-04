@@ -1,5 +1,4 @@
 const didJWT = require('did-jwt')
-const { registerMethod } = require('did-resolver')
 
 test('', () => {})
 
@@ -21,8 +20,8 @@ const mock3id = {
 }
 
 // we need to have a fake 3id resolver since we have a fake 3id
-const registerMock3idResolver = () => registerMethod('3', async () => {
-  return {
+const getMock3idResolver = () => ({
+  '3': () => ({
     '@context': 'https://w3id.org/did/v1',
     id: 'did:3:asdfasdf',
     publicKey: [{
@@ -34,10 +33,10 @@ const registerMock3idResolver = () => registerMethod('3', async () => {
       type: 'Secp256k1SignatureAuthentication2018',
       publicKey: 'did:3:asdfasdf#signingKey'
     }]
-  }
+  })
 })
 
 module.exports = {
   mock3id,
-  registerMock3idResolver
+  getMock3idResolver
 }

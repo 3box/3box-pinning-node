@@ -1,8 +1,9 @@
-orbs:
-  aws-cli: circleci/aws-cli@0.1.13
-  aws-ecr: circleci/aws-ecr@6.7.0
-
 version: 2.1
+
+orbs:
+  aws-ecr: circleci/aws-ecr@6.8.1
+  aws-cli: circleci/aws-cli@1.0.0
+  slack: circleci/slack@3.4.2
 
 jobs:
   test:
@@ -44,9 +45,11 @@ jobs:
     working_directory: ~/3box-pinning-server
     docker:
       - image: circleci/python:3.7.1
+    environment:
+      AWS_PAGER: ''
     steps:
       - aws-cli/install
-      - aws-cli/configure
+      - aws-cli/setup
       - run:
           name: Deploy Pinning Service
           command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-dev  --service pinning-node-service-dev
@@ -54,15 +57,53 @@ jobs:
           name: Deploy API Service
           command: aws ecs update-service --force-new-deployment --cluster  pinning-node-cluster-dev  --service profile-api-service-dev
 
+  run-smoke-test:
+    executor: aws-cli/default
+    environment:
+      AWS_PAGER: ''
+    steps:
+      - aws-cli/setup
+      - run:
+          name: Run task and wait for results
+          command: |
+            set -eo pipefail
+            STARTED_BY=ci.${CIRCLE_PR_REPONAME:0:28}.$CIRCLE_BUILD_NUM
+            TASK_DEFINITION=smoke-tests-dev
+            CLUSTER=pinning-node-cluster-dev
+            SUBNET_IDs=subnet-0c52903d646a95ac4
+            SECURITY_GROUP_IDs=sg-0be84020206f86893,sg-0ce79fc4e14c351f7
+            TASK_ARN=$(aws ecs run-task \
+              --task-definition $TASK_DEFINITION \
+              --cluster $CLUSTER \
+              --launch-type FARGATE \
+              --network-configuration awsvpcConfiguration="{subnets=[$SUBNET_IDs],securityGroups=[$SECURITY_GROUP_IDs]}" \
+              --started-by $STARTED_BY \
+              --query 'tasks[].taskArn' \
+              --output text)
+            echo "Task ARN: $TASK_ARN"
+            aws ecs wait tasks-stopped --cluster $CLUSTER --tasks $TASK_ARN
+            EXIT_STATUS=$(aws ecs describe-tasks --cluster $CLUSTER --tasks $TASK_ARN --query 'tasks[0].containers[0].exitCode' --output text)
+            if [ "$EXIT_STATUS" = "0" ]; then
+              echo "Smoke tests succeeded"
+            else
+              echo "Smoke tests failed, see AWS logs for more info"
+              exit 1
+            fi
+      - slack/status:
+          failure_message: Smoke tests failed for DEV environment
+          fail_only: true
+          webhook: $DISCORD_WEBHOOK_URL
+
   # Need seperate clusters if we have dev and prod, depends how we want to treat dev
   deploy-prod:
     working_directory: ~/3box-pinning-server
     docker:
       - image: circleci/python:3.7.1
-
+    environment:
+      AWS_PAGER: ''
     steps:
       - aws-cli/install
-      - aws-cli/configure
+      - aws-cli/setup
       - run:
           name: Deploy Pinning Service
           command: aws ecs update-service --force-new-deployment --cluster pinning-node-cluster-prod  --service pinning-node-service-prod
@@ -97,6 +138,12 @@ workflows:
       - deploy-dev:
           requires:
             - push-dev-image
+          filters:
+            branches:
+              only: develop
+      - run-smoke-test:
+          requires:
+            - deploy-dev
           filters:
             branches:
               only: develop
