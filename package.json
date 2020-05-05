@@ -60,7 +60,7 @@
     "redis-mock": "^0.47.0",
     "standard": "^14.1.0",
     "supertest": "^4.0.2",
-    "tmp-promise": "^2.0.2"
+    "tmp-promise": "^3.0.0"
   },
   "standard": {
     "env": [
