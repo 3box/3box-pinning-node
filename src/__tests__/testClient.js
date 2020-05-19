@@ -2,6 +2,7 @@ const defaultsDeep = require('lodash.defaultsdeep')
 const tmp = require('tmp-promise')
 tmp.setGracefulCleanup()
 
+const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const Pubsub = require('orbit-db-pubsub')
 const { Resolver } = require('did-resolver')
@@ -20,7 +21,6 @@ AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessCo
 AccessControllers.addAccessController({ AccessController: ThreadAccessController })
 AccessControllers.addAccessController({ AccessController: ModeratorAccessController })
 
-const { makeIPFS } = require('./tools')
 const { mock3id } = require('./mock3id')
 
 class TestClient {
@@ -45,7 +45,7 @@ class TestClient {
     if (!this._ipfsConfig.repo) {
       this._ipfsConfig.repo = this._tmpDir.path + '/ipfs'
     }
-    this.ipfs = await makeIPFS(this._ipfsConfig)
+    this.ipfs = await IPFS.create(this._ipfsConfig)
     this.identity = await Identities.createIdentity({
       type: '3ID',
       threeId: mock3id,

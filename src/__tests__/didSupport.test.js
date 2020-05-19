@@ -1,9 +1,9 @@
+const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 const { LegacyIPFS3BoxAccessController } = require('3box-orbitdb-plugins')
 const AccessControllers = require('orbit-db-access-controllers')
 AccessControllers.addAccessController({ AccessController: LegacyIPFS3BoxAccessController })
 const Util = require('../util')
-const { makeIPFS } = require('./tools')
 const { Resolver } = require('did-resolver')
 const getMuportResolver = require('muport-did-resolver').getResolver
 
@@ -50,19 +50,22 @@ describe('test with network', () => {
   jest.setTimeout(30000)
   let ipfs
   let orbitdb
+  let did
 
   beforeAll(async () => {
-    ipfs = await makeIPFS(IPFS_CONF)
-    await ipfs.add(Buffer.from(MANIFEST))
+    ipfs = await IPFS.create(IPFS_CONF)
+    const cid = (await (await ipfs.add(Buffer.from(MANIFEST))).next()).value.cid
+    did = 'did:muport:' + cid.toString()
     orbitdb = new OrbitDB(ipfs, ODB_PATH)
   })
 
   afterAll(async () => {
+    await orbitdb.close()
     return ipfs.close()
   })
 
   it('can retrieve a root store', async () => {
-    const addr = await Util.didToRootStoreAddress(DID, { orbitdb })
+    const addr = await Util.didToRootStoreAddress(did, { orbitdb })
     expect(addr).toEqual(ROOT_STORE_ADDR)
   })
 })
