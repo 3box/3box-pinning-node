@@ -1,5 +1,9 @@
 # Release Notes
 
+## v.14.1 - 2020-05-25
+
+* chore: increase max number of swarm connections from 500 to 1500
+
 ## v1.14.0 - 2020-05-01
 
 * chore: upgrade did-resolver and did-jwt libraries
