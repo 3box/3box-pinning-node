@@ -75,6 +75,12 @@ function prepareIPFSConfig () {
       Bootstrap: [],
       Addresses: {
         Swarm: swarmAddresses
+      },
+      Swarm: {
+        ConnMgr: {
+          LowWater: 700,
+          HighWater: 1500
+        }
       }
     }
   }
