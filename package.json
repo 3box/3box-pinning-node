@@ -32,7 +32,7 @@
     "bunyan": "^1.8.12",
     "datastore-s3": "^0.3.0",
     "did-resolver": "^1.1.0",
-    "dotenv": "^6.2.0",
+    "dotenv": "^8.2.0",
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
     "ipfs": "^0.40.0",
