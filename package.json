@@ -58,7 +58,7 @@
     "lodash.defaultsdeep": "^4.6.1",
     "nodemon": "^1.19.4",
     "redis-mock": "^0.47.0",
-    "standard": "^14.1.0",
+    "standard": "^14.3.4",
     "supertest": "^4.0.2",
     "tmp-promise": "^2.0.2"
   },
