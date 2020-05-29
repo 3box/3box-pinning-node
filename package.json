@@ -35,7 +35,7 @@
     "dotenv": "^6.2.0",
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
-    "ipfs": "^0.44.0",
+    "ipfs": "^0.45.0",
     "ipfs-http-client": "^44.1.0",
     "ipfs-log": "^4.6.0",
     "ipfs-repo": "^2.0.1",
