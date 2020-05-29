@@ -38,7 +38,7 @@
     "ipfs": "^0.44.0",
     "ipfs-http-client": "^44.1.0",
     "ipfs-log": "^4.6.0",
-    "ipfs-repo": "^2.0.1",
+    "ipfs-repo": "^3.0.1",
     "js-sha256": "^0.9.0",
     "multihashes": "^0.4.14",
     "muport-did-resolver": "^1.0.2",
