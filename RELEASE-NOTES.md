@@ -1,7 +1,9 @@
 # Release Notes
 
-## v.14.1 - 2020-05-25
+## v.14.2 - 2020-06-03
+* core: update to `ipfs@0.44`
 
+## v.14.1 - 2020-05-25
 * chore: increase max number of swarm connections from 500 to 1500
 
 ## v1.14.0 - 2020-05-01
