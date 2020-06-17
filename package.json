@@ -7,6 +7,7 @@
     "lint": "./node_modules/.bin/standard --verbose src/**",
     "test": "rm -rf ./tmp ;  mkdir -p ./tmp/test/one ; jest --forceExit --detectOpenHandles --coverage --runInBand",
     "start": "node ./src/node.js",
+    "start:prod": "node --max-old-space-size=8192 ./src/node.js",
     "start:dev": "./node_modules/.bin/nodemon ./src/node.js"
   },
   "repository": {
