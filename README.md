@@ -66,3 +66,6 @@ PIN_WHITELIST_SPACES=abc,def
 ```
 
 In addition, the PIN_SILENT environment variable can be set to `true` if the pinning node should not send responses to pin and sync requests (on private and 3rd party nodes, for example).
+
+## Maintainers
+[@zachferland](https://github.com/zachferland)
