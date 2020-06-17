@@ -1,5 +1,8 @@
 # Release Notes
 
+## v.14.3 - 2020-06-17
+* build: increase node mem prod docker image
+
 ## v.14.2 - 2020-06-03
 * core: update to `ipfs@0.44`
 
