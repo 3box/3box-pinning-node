@@ -15,10 +15,18 @@ class HealthcheckService {
   }
 
   async healthcheckHandler (req, res, next) {
-    if (!this.pinning.ipfs.isOnline()) return res.status(503).send()
+    const isOnline = this.pinning.ipfs.isOnline()
+    console.log(isOnline)
+    if (!isOnline) return res.status(503).send()
     const cpuFree = await new Promise((resolve, reject) => os.cpuFree(resolve))
+    console.log(cpuFree)
     const memFree = os.freememPercentage()
-    if (cpuFree < 0.05 || memFree < 0.20) return res.status(503).send()
+    console.log(memFree)
+    if (cpuFree < 0.05 || memFree < 0.20) {
+      console.log('failed')
+      return res.status(503).send()
+    }
+    console.log('return 200')
     return res.status(200).send()
   }
 
