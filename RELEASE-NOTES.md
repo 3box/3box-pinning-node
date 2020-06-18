@@ -1,5 +1,8 @@
 # Release Notes
 
+### v.14.4 - 2020-06-18
+* chore: up aws, increase mem prod, temp logs
+
 ## v.14.3 - 2020-06-17
 * build: increase node mem prod docker image
 

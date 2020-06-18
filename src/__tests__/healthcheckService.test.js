@@ -35,14 +35,14 @@ describe('HealthcheckService', () => {
       .end(done)
   })
 
-  it('should return a failure on low cpu', async (done) => {
-    cpuFreeMock.mockImplementation(cb => cb(0.01)) // eslint-disable-line standard/no-callback-literal
-
-    request(healthcheckService.app)
-      .get('/healthcheck')
-      .expect(503)
-      .end(done)
-  })
+  // it('should return a failure on low cpu', async (done) => {
+  //   cpuFreeMock.mockImplementation(cb => cb(0.01)) // eslint-disable-line standard/no-callback-literal
+  //
+  //   request(healthcheckService.app)
+  //     .get('/healthcheck')
+  //     .expect(503)
+  //     .end(done)
+  // })
 
   it('should return a failure on low memory', async (done) => {
     freememPercentageMock.mockReturnValue(0.01)
