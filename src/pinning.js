@@ -274,7 +274,7 @@ class Pinning {
     const cacheEntries = typeof numEntries === 'number' ? numEntries : await this.entriesCache.get(address)
 
     // line can be removed in future
-    if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
+    // if (typeof cacheEntries !== 'number' && await this._dbOpenedBefore(address)) return
     await this._publish('HAS_ENTRIES', address, cacheEntries || 0)
   }
 
@@ -286,8 +286,8 @@ class Pinning {
   async _cacheNumEntries (address) {
     const numEntries = this.openDBs[address].db._oplog.values.length
     // 2 lines can be removed in future
-    const notCachedBefore = await this.entriesCache.get(address) === null
-    if (notCachedBefore) this._sendHasResponse(address, numEntries)
+    // const notCachedBefore = await this.entriesCache.get(address) === null
+    // if (notCachedBefore) this._sendHasResponse(address, numEntries)
 
     this.entriesCache.set(address, numEntries)
   }
