@@ -6,7 +6,7 @@ const ipfsClient = require('ipfs-http-client')
 const Pinning = require('./pinning')
 const { ipfsRepo } = require('./s3')
 const analytics = require('./analytics')
-const { randInt, isBooleanStringSet } = require('./util')
+const { isBooleanStringSet } = require('./util')
 const HealthcheckService = require('./healthcheckService')
 
 const env = process.env.NODE_ENV || 'development'
@@ -18,7 +18,7 @@ const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
 const ENTRIES_NUM_REDIS_PATH = process.env.ENTRIES_NUM_REDIS_PATH
-const PUBSUB_REDIS_PATH = process.env.PUBSUB_REDIS_PATH
+// const PUBSUB_REDIS_PATH = process.env.PUBSUB_REDIS_PATH
 const PINNING_ROOM = process.env.PINNING_ROOM || '3box-pinning'
 const HEALTHCHECK_PORT = process.env.HEALTHCHECK_PORT || 8081
 
@@ -33,12 +33,13 @@ const PIN_SILENT = isBooleanStringSet(process.env.PIN_SILENT)
 const PIN_WHITELIST_DIDS = process.env.PIN_WHITELIST_DIDS ? process.env.PIN_WHITELIST_DIDS.split(',') : null
 const PIN_WHITELIST_SPACES = process.env.PIN_WHITELIST_SPACES ? process.env.PIN_WHITELIST_SPACES.split(',') : null
 
-const INSTANCE_ID = randInt(10000000000).toString()
+// const INSTANCE_ID = randInt(10000000000).toString()
 
 const analyticsClient = analytics(SEGMENT_WRITE_KEY, ANALYTICS_ACTIVE)
 const orbitCacheRedisOpts = ORBIT_REDIS_PATH ? { host: ORBIT_REDIS_PATH } : null
 const entriesNumRedisOpts = ENTRIES_NUM_REDIS_PATH ? { host: ENTRIES_NUM_REDIS_PATH } : null
-const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
+// const pubSubConfig = PUBSUB_REDIS_PATH && INSTANCE_ID ? { redis: { host: PUBSUB_REDIS_PATH }, instanceId: INSTANCE_ID } : null
+const pubSubConfig = null
 
 function prepareIPFSConfig () {
   let repo

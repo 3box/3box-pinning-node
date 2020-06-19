@@ -1,5 +1,8 @@
 # Release Notes
 
+### v.14.6 - 2020-06-19
+* feat: remove temp has entries cache fix
+
 ### v.14.5 - 2020-06-19
 * chore: up ipfs 0.46.0
 
