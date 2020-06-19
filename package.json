@@ -1,6 +1,6 @@
 {
   "name": "3box-pinning-node",
-  "version": "1.14.4",
+  "version": "1.14.5",
   "description": "IPFS Node that runs OrbitDB under the hood",
   "main": "src/node.js",
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/3box/3box-pinning-node#readme",
   "dependencies": {
-    "3box-orbitdb-plugins": "^2.0.0",
+    "3box-orbitdb-plugins": "^2.1.1",
     "3id-resolver": "^1.0.0",
     "analytics-node": "^3.3.0",
     "aws-sdk": "^2.699.0",
@@ -36,10 +36,10 @@
     "dotenv": "^6.2.0",
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
-    "ipfs": "^0.44.0",
+    "ipfs": "0.46.0",
     "ipfs-http-client": "^44.1.0",
     "ipfs-log": "^4.6.0",
-    "ipfs-repo": "^2.0.1",
+    "ipfs-repo": "^3.0.2",
     "js-sha256": "^0.9.0",
     "multihashes": "^0.4.14",
     "muport-did-resolver": "^1.0.2",

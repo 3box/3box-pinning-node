@@ -1,5 +1,8 @@
 # Release Notes
 
+### v.14.5 - 2020-06-19
+* chore: up ipfs 0.46.0
+
 ### v.14.4 - 2020-06-18
 * chore: up aws, increase mem prod, temp logs
 
