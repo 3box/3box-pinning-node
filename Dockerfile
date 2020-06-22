@@ -11,6 +11,6 @@ RUN npm install
 
 COPY src ./src
 
-EXPOSE  8081 4002 4003 5002 9090
+EXPOSE 8081 4002 4003 5002 9090 9229
 
-CMD npm run start:prod
+CMD npm run start:prod:profile
