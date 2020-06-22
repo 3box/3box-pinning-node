@@ -1,5 +1,8 @@
 # Release Notes
 
+### v.14.7 - 2020-06-22
+* fix: downgrade aws sdk
+
 ### v.14.6 - 2020-06-19
 * feat: remove temp has entries cache fix
 
