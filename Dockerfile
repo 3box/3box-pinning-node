@@ -1,4 +1,4 @@
-FROM node:10.18.1
+FROM node:12.18.1
 
 ARG CODE_VERSION="00000"
 
