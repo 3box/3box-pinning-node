@@ -1,6 +1,6 @@
 {
   "name": "3box-pinning-node",
-  "version": "1.14.7",
+  "version": "1.14.8",
   "description": "IPFS Node that runs OrbitDB under the hood",
   "main": "src/node.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "test": "rm -rf ./tmp ;  mkdir -p ./tmp/test/one ; jest --forceExit --detectOpenHandles --coverage --runInBand",
     "start": "node ./src/node.js",
     "start:prod": "node --max-old-space-size=20480 ./src/node.js",
+    "start:prod:profile": "node --inspect=0.0.0.0:9229 --max-old-space-size=20480 ./src/node.js",
     "start:dev": "./node_modules/.bin/nodemon ./src/node.js"
   },
   "repository": {
