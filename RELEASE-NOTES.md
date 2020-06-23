@@ -1,24 +1,28 @@
 # Release Notes
 
-### v.14.7 - 2020-06-22
+### v1.14.9 - 2020-06-23
+* chore: logs ipfs
+* fix: libp2p streams management
+
+### v1.14.7 - 2020-06-22
 * fix: downgrade aws sdk
 
-### v.14.6 - 2020-06-19
+### v1.14.6 - 2020-06-19
 * feat: remove temp has entries cache fix
 
-### v.14.5 - 2020-06-19
+### v1.14.5 - 2020-06-19
 * chore: up ipfs 0.46.0
 
-### v.14.4 - 2020-06-18
+### v1.14.4 - 2020-06-18
 * chore: up aws, increase mem prod, temp logs
 
-## v.14.3 - 2020-06-17
+## v1.14.3 - 2020-06-17
 * build: increase node mem prod docker image
 
-## v.14.2 - 2020-06-03
+## v1.14.2 - 2020-06-03
 * core: update to `ipfs@0.44`
 
-## v.14.1 - 2020-05-25
+## v1.14.1 - 2020-05-25
 * chore: increase max number of swarm connections from 500 to 1500
 
 ## v1.14.0 - 2020-05-01
