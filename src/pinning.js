@@ -129,13 +129,16 @@ class Pinning {
       // Log out the bandwidth stats periodically
       this._ipfsMetricsInterval = setInterval(async () => {
         try {
-          const stats = await this.ipfs.stats.bw()
-          this.logger.info(`Node Bandwidth Stats: ${JSON.stringify(stats)}`)
+          let stats = this.ipfs.libp2p.metrics.global
+          this.logger.info(`Bandwith Stats: ${JSON.stringify(stats)}`)
 
-          const globalStats = this.ipfs.libp2p.metrics.global
-          this.logger.info(`Global Stats: ${JSON.stringify(globalStats)}`)
+          stats = await this.ipfs.stats.bitswap()
+          this.logger.info(`Bitswap Stats: ${JSON.stringify(stats)}`)
+
+          stats = await this.ipfs.stats.repo()
+          this.logger.info(`Repo Stats: ${JSON.stringify(stats)}`)
         } catch (err) {
-          this.logger.error(`Error occurred trying to check node bandwith: ${err}`)
+          this.logger.error(`Error occurred trying to check node stats: ${err}`)
         }
       }, IPFS_METRICS_INTERVAL)
     }
