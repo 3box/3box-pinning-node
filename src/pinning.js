@@ -26,6 +26,9 @@ AccessControllers.addAccessController({ AccessController: ModeratorAccessControl
 
 const manifestCacheKey = address => `${address}/_manifest`
 
+const IPFS_METRICS_ENABLED = process.env.IPFS_METRICS_ENABLED || true
+const IPFS_METRICS_INTERVAL = process.env.IPFS_METRICS_INTERVAL || 10000
+
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
 // Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
 // fix implemented below.
@@ -121,10 +124,30 @@ class Pinning {
     this.pubsub = new Pubsub(this.ipfs, ipfsId.id)
     await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
     this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
+
+    if (IPFS_METRICS_ENABLED) {
+      // Log out the bandwidth stats periodically
+      this._ipfsMetricsInterval = setInterval(async () => {
+        try {
+          const stats = await this.ipfs.stats.bw()
+          this.logger.info(`Node Bandwidth Stats: ${JSON.stringify(stats)}`)
+
+          const globalStats = this.ipfs.libp2p.metrics.global
+          this.logger.info(`Global Stats: ${JSON.stringify(globalStats)}`)
+        } catch (err) {
+          this.logger.error(`Error occurred trying to check node bandwith: ${err}`)
+        }
+      }, IPFS_METRICS_INTERVAL)
+    }
   }
 
   async stop () {
     clearInterval(this._dbCloseinterval)
+
+    if (IPFS_METRICS_ENABLED) {
+      clearInterval(this._ipfsMetricsInterval)
+    }
+
     await this.pubsub.disconnect()
     await this.checkAndCloseDBs()
     await this.orbitdb.stop()
