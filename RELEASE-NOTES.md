@@ -1,5 +1,8 @@
 # Release Notes
 
+### v1.14.10 - 2020-06-23
+* fix: http agent s3
+
 ### v1.14.9 - 2020-06-23
 * chore: logs ipfs
 * fix: libp2p streams management
