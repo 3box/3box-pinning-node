@@ -26,7 +26,7 @@ AccessControllers.addAccessController({ AccessController: ModeratorAccessControl
 
 const manifestCacheKey = address => `${address}/_manifest`
 
-const IPFS_METRICS_ENABLED = process.env.IPFS_METRICS_ENABLED || true
+const IPFS_METRICS_ENABLED = false
 const IPFS_METRICS_INTERVAL = process.env.IPFS_METRICS_INTERVAL || 10000
 
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
