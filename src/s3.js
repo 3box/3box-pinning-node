@@ -1,6 +1,11 @@
 const S3Store = require('datastore-s3')
 const S3 = require('aws-sdk/clients/s3')
 const IPFSRepo = require('ipfs-repo')
+const http = require('https')
+const agent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 2000
+})
 
 // Redundant with createRepo in datastore-s3, but needed to configure
 // additional S3 client parameters not otherwise exposed
@@ -36,7 +41,10 @@ const ipfsRepo = (config) => {
       secretAccessKey,
       endpoint,
       s3ForcePathStyle,
-      signatureVersion
+      signatureVersion,
+      httpOptions: {
+        agent
+      }
     }),
     createIfMissing
   }
