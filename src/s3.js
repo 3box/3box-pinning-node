@@ -4,7 +4,7 @@ const IPFSRepo = require('ipfs-repo')
 const http = require('https')
 const agent = new http.Agent({
   keepAlive: true,
-  maxSockets: 2000
+  maxSockets: 10000
 })
 
 // Redundant with createRepo in datastore-s3, but needed to configure
