@@ -1,6 +1,6 @@
 {
   "name": "3box-pinning-node",
-  "version": "1.14.10",
+  "version": "1.14.11",
   "description": "IPFS Node that runs OrbitDB under the hood",
   "main": "src/node.js",
   "scripts": {
