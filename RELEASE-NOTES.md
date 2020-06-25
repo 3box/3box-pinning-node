@@ -1,7 +1,7 @@
 # Release Notes
 
-### v1.14.10 - 2020-06-24
-* fix: s3 http agent
+### v1.14.12 - 2020-06-25
+* chore: node ver, mem watch, healthcheck
 
 ### v1.14.9 - 2020-06-23
 * chore: logs ipfs
