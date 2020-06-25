@@ -46,7 +46,7 @@ class MemoryInspector {
       const timerId = setTimeout(() => {
         console.log('Taking second snapshot...')
         const diff = hd.end()
-        self.logger.info(JSON.stringify(diff, null, 2))
+        console.log(JSON.stringify(diff, null, 2))
         clearTimeout(timerId)
       }, 180000) // 3 minutes
     }, 600000) // 10 minutes
