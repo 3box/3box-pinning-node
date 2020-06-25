@@ -35,7 +35,7 @@ const memwatch = require('node-memwatch')
 class MemoryInspector {
   constructor () {
     memwatch.on('leak', (info) => {
-      console.log(JSON.stringify(info, null, 2))
+      console.log(JSON.stringify(info))
     })
   }
 
@@ -47,7 +47,7 @@ class MemoryInspector {
       const timerId = setTimeout(() => {
         console.log('Taking second snapshot...')
         const diff = hd.end()
-        console.log(JSON.stringify(diff, null, 2))
+        console.log(JSON.stringify(diff))
         clearTimeout(timerId)
       }, 180000) // 3 minutes
     }, 600000) // 10 minutes
