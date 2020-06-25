@@ -1,5 +1,12 @@
 const S3Store = require('datastore-s3')
-const S3 = require('aws-sdk/clients/s3')
+// const S3 = require('aws-sdk/clients/s3')
+var AWS = require('aws-sdk')
+AWS.config.credentials = new AWS.ECSCredentials({
+  httpOptions: { timeout: 5000 },
+  maxRetries: 10,
+  retryDelayOptions: { base: 200 }
+})
+const S3 = AWS.S3
 const IPFSRepo = require('ipfs-repo')
 const http = require('https')
 const agent = new http.Agent({
