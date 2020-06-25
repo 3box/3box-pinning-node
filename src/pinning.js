@@ -32,16 +32,13 @@ const IPFS_METRICS_INTERVAL = process.env.IPFS_METRICS_INTERVAL || 10000
 const memwatch = require('node-memwatch')
 
 class MemoryInspector {
-  constructor (logger) {
-    this.logger = logger
-
+  constructor () {
     memwatch.on('leak', (info) => {
       console.log(JSON.stringify(info, null, 2))
     })
   }
 
   start () {
-    const self = this
     setInterval(() => {
       console.log('Taking first snapshot...')
       const hd = new memwatch.HeapDiff()
