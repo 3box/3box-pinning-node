@@ -30,30 +30,6 @@ const manifestCacheKey = address => `${address}/_manifest`
 const IPFS_METRICS_ENABLED = false
 const IPFS_METRICS_INTERVAL = process.env.IPFS_METRICS_INTERVAL || 10000
 
-const memwatch = require('node-memwatch')
-
-class MemoryInspector {
-  constructor () {
-    memwatch.on('leak', (info) => {
-      console.log(JSON.stringify(info))
-    })
-  }
-
-  start () {
-    setInterval(() => {
-      console.log('Taking first snapshot...')
-      const hd = new memwatch.HeapDiff()
-
-      const timerId = setTimeout(() => {
-        console.log('Taking second snapshot...')
-        const diff = hd.end()
-        console.log(JSON.stringify(diff))
-        clearTimeout(timerId)
-      }, 180000) // 3 minutes
-    }, 600000) // 10 minutes
-  }
-}
-
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
 // Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
 // fix implemented below.
@@ -167,9 +143,6 @@ class Pinning {
         }
       }, IPFS_METRICS_INTERVAL)
     }
-
-    const memoryInspector = new MemoryInspector()
-    memoryInspector.start()
   }
 
   async stop () {
