@@ -1,5 +1,4 @@
 const express = require('express')
-const execSync = require('child_process').execSync
 // const os = require('os-utils')
 
 const { createLogger } = require('./logger')
@@ -16,10 +15,6 @@ class HealthcheckService {
   }
 
   async healthcheckHandler (req, res, next) {
-    console.log('All:')
-    console.log(execSync('ulimit -a').toString())
-    console.log('Current:')
-    console.log(execSync('ulimit -n').toString())
     // if (!this.pinning.ipfs.isOnline()) return res.status(503).send()
     // const cpuFree = await new Promise((resolve, reject) => os.cpuFree(resolve))
     // const memFree = os.freememPercentage()
