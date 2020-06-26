@@ -2,19 +2,28 @@ const S3Store = require('datastore-s3')
 // const S3 = require('aws-sdk/clients/s3')
 const AWS = require('aws-sdk')
 
-AWS.config.logger = console
-AWS.config.credentials = new AWS.ECSCredentials({
-  httpOptions: { timeout: 5000 },
-  maxRetries: 10,
-  retryDelayOptions: { base: 200 }
+const https = require('https')
+
+const agent = new https.Agent({
+  maxSockets: 300,
+  keepAlive: true
 })
+
+AWS.config.update({
+  logger: console,
+  httpOptions: {
+    timeout: 45000,
+    connectTimeout: 45000,
+    agent: agent
+  },
+  maxRetries: 10,
+  retryDelayOptions: {
+    base: 500
+  }
+})
+
 const S3 = AWS.S3
 const IPFSRepo = require('ipfs-repo')
-const http = require('https')
-const agent = new http.Agent({
-  // keepAlive: true,
-  maxSockets: 1000
-})
 
 // Redundant with createRepo in datastore-s3, but needed to configure
 // additional S3 client parameters not otherwise exposed
