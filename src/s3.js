@@ -59,7 +59,7 @@ const ipfsRepo = (config) => {
       secretAccessKey,
       endpoint,
       s3ForcePathStyle,
-      signatureVersion,
+      signatureVersion
     }),
     createIfMissing
   }
