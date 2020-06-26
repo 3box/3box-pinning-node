@@ -60,9 +60,6 @@ const ipfsRepo = (config) => {
       endpoint,
       s3ForcePathStyle,
       signatureVersion,
-      httpOptions: {
-        agent
-      }
     }),
     createIfMissing
   }
