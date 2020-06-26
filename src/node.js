@@ -72,6 +72,7 @@ function prepareIPFSConfig () {
   const ipfsOpts = {
     repo,
     preload: { enabled: false },
+    libp2p: { modules: { dht: null } },
     config: {
       Bootstrap: [],
       Addresses: {
