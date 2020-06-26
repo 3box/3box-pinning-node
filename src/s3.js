@@ -1,6 +1,8 @@
 const S3Store = require('datastore-s3')
 // const S3 = require('aws-sdk/clients/s3')
-var AWS = require('aws-sdk')
+const AWS = require('aws-sdk')
+
+AWS.config.logger = console
 AWS.config.credentials = new AWS.ECSCredentials({
   httpOptions: { timeout: 5000 },
   maxRetries: 10,
