@@ -67,13 +67,13 @@ const ipfsRepo = (config) => {
   return new IPFSRepo(path, {
     storageBackends: {
       blocks: S3Store,
-      datastore: S3Store,
+      // datastore: S3Store,
       root: S3Store,
       keys: S3Store
     },
     storageBackendOptions: {
       blocks: storeConfig,
-      datastore: storeConfig,
+      // datastore: storeConfig,
       root: storeConfig,
       keys: storeConfig
     },
