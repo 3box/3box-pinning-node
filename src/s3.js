@@ -2,6 +2,14 @@ const S3Store = require('datastore-s3')
 // const S3 = require('aws-sdk/clients/s3')
 const AWS = require('aws-sdk')
 
+const LevelStore = require('datastore-level')
+
+// const store = new LevelStore('datastore')
+
+// const memStore = new LevelStore('my/mem/store', {
+//   db: require('level-mem')
+// })
+
 const https = require('https')
 
 const agent = new https.Agent({
@@ -67,16 +75,21 @@ const ipfsRepo = (config) => {
   return new IPFSRepo(path, {
     storageBackends: {
       blocks: S3Store,
-      datastore: S3Store,
+      // datastore: S3Store,
+      datastore: LevelStore,
       root: S3Store,
       keys: S3Store
     },
     storageBackendOptions: {
       blocks: storeConfig,
-      datastore: storeConfig,
+      // datastore: storeConfig,
+      datastore: {
+        db: require('level-mem')
+      },
       root: storeConfig,
       keys: storeConfig
     },
+    // lock: 'memory'
     lock: notALock
   })
 }
