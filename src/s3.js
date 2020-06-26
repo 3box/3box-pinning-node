@@ -9,8 +9,11 @@ const agent = new https.Agent({
   keepAlive: true
 })
 
+const { createLogger } = require('./logger')
+const logger = createLogger({ name: 'aws' })
+
 AWS.config.update({
-  logger: console,
+  logger,
   httpOptions: {
     timeout: 45000,
     connectTimeout: 45000,
