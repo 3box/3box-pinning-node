@@ -77,7 +77,7 @@ const ipfsRepo = (config) => {
       root: storeConfig,
       keys: storeConfig
     },
-    lock: notALock
+    lock: 'memory'
   })
 }
 
