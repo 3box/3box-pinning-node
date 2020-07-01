@@ -184,33 +184,32 @@ class Pinning {
     }
   }
 
+  async _getDbPromise (address) {
+    return new Promise((resolve, reject) => {
+      const cid = new CID(address.split('/')[2])
+      const opts = {
+        syncLocal: true,
+        sortFn: IPFSLog.Sorting.SortByEntryHash, // this option is required now but will likely not be in the future.
+        accessController: {
+          type: 'legacy-ipfs-3box',
+          skipManifest: true,
+          resolver: this._resolver
+        }
+      }
+      this.orbitdb.open(address, cid.version === 0 ? opts : {}).then(db => {
+        db.events.on('ready', () => { resolve(db) })
+        db.load()
+      })
+    })
+  }
+
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
     let root, did
 
     if (!this.openDBs[address]) {
       this.logger.info('Opening db:', address)
 
-      this.openDBs[address] = {
-        dbPromise: new Promise((resolve, reject) => {
-          const cid = new CID(address.split('/')[2])
-
-          const opts = {
-            syncLocal: true,
-            sortFn: IPFSLog.Sorting.SortByEntryHash, // this option is required now but will likely not be in the future.
-            accessController: {
-              type: 'legacy-ipfs-3box',
-              skipManifest: true,
-              resolver: this._resolver
-            }
-          }
-          this.orbitdb.open(address, cid.version === 0 ? opts : {}).then(db => {
-            db.events.on('ready', () => {
-              resolve(db)
-            })
-            db.load()
-          })
-        })
-      }
+      this.openDBs[address] = { dbPromise: this._getDbPromise(address) }
       this.openDBs[address].latestTouch = Date.now()
       this.openDBs[address].loading = true
 
@@ -233,7 +232,7 @@ class Pinning {
       })
       this.logger.info('Successful db open:', address)
     } else {
-      await this.openDBs[address].dbPromise
+      this.openDBs[address].db = await this.openDBs[address].dbPromise
       responseFn(address)
       if (analyticsFn) {
         root = address.split('.')[1] === 'root' ? address : rootStoreAddress
