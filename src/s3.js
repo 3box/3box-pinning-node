@@ -18,7 +18,7 @@ const agent = new https.Agent({
 })
 
 AWS.config.update({
-  logger: console,
+  // logger: console,
   httpOptions: {
     timeout: 45000,
     connectTimeout: 45000,
