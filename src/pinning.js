@@ -2,7 +2,6 @@ const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
 const MessageBroker = require('./messageBroker')
 const Pubsub = require('orbit-db-pubsub')
-const timer = require('exectimer')
 const { Resolver } = require('did-resolver')
 const get3IdResolver = require('3id-resolver').getResolver
 const getMuportResolver = require('muport-did-resolver').getResolver
@@ -186,8 +185,6 @@ class Pinning {
   }
 
   async openDB (address, responseFn, onReplicatedFn, rootStoreAddress, analyticsFn) {
-    const tick = new timer.Tick('openDB')
-    tick.start()
     let root, did
 
     if (!this.openDBs[address]) {
@@ -234,6 +231,7 @@ class Pinning {
         this._cacheNumEntries(address)
         this.trackUpdates(address, rootStoreAddress, did)
       })
+      this.logger.info('Successful db open:', address)
     } else {
       await this.openDBs[address].dbPromise
       responseFn(address)
@@ -243,7 +241,6 @@ class Pinning {
         analyticsFn(did, false)
       }
     }
-    tick.stop()
   }
 
   async rootStoreToDID (rootStoreAddress) {
