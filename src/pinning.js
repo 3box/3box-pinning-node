@@ -380,26 +380,24 @@ class Pinning {
   }
 
   _onMessage (topic, data) {
-    try {
-      if (OrbitDB.isValidAddress(data.odbAddress)) {
-        this._sendHasResponse(data.odbAddress)
-        if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
-          this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
-          this.analytics.trackPinDBAddress(data.odbAddress)
-        } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
-          this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
-          this.analytics.trackSyncDB(data.odbAddress)
-        }
-        if (data.did) {
-          this._pinDID(data.did)
-        }
-        if (data.muportDID) {
-          this._pinDID(data.muportDID)
-        }
+    const promises = []
+    if (OrbitDB.isValidAddress(data.odbAddress)) {
+      promises.push(this._sendHasResponse(data.odbAddress))
+      if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
+        promises.push(this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics)))
+        this.analytics.trackPinDBAddress(data.odbAddress)
+      } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
+        promises.push(this.openDB(data.odbAddress, this._cacheNumEntries.bind(this)))
+        this.analytics.trackSyncDB(data.odbAddress)
       }
-    } catch (err) {
-      this.logger.error(`Error occurred onMessage: ${err}`)
+      if (data.did) {
+        promises.push(this._pinDID(data.did))
+      }
+      if (data.muportDID) {
+        promises.push(this._pinDID(data.muportDID))
+      }
     }
+    Promise.all(promises).catch((err) => this.logger.error(`Error occurred onMessage: ${err}`))
   }
 
   _onNewPeer (topic, peer) {
