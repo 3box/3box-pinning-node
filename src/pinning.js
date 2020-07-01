@@ -363,7 +363,9 @@ class Pinning {
     try {
       await this._pinningResolver.resolve(did)
       // if this throws it's not a DID
-    } catch (e) {}
+    } catch (err) {
+      this.logger.error(`Error occurred trying to pin DID: ${err}`)
+    }
   }
 
   _openSubStoresAndCacheEntries (address) {
@@ -381,21 +383,25 @@ class Pinning {
   }
 
   _onMessage (topic, data) {
-    if (OrbitDB.isValidAddress(data.odbAddress)) {
-      this._sendHasResponse(data.odbAddress)
-      if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
-        this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
-        this.analytics.trackPinDBAddress(data.odbAddress)
-      } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
-        this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
-        this.analytics.trackSyncDB(data.odbAddress)
+    try {
+      if (OrbitDB.isValidAddress(data.odbAddress)) {
+        this._sendHasResponse(data.odbAddress)
+        if (data.type === 'PIN_DB' && this._shouldHandlePinRequest(data)) {
+          this.openDB(data.odbAddress, this._openSubStoresAndCacheEntries.bind(this), this._openSubStores.bind(this), null, this.analytics.trackPinDB.bind(this.analytics))
+          this.analytics.trackPinDBAddress(data.odbAddress)
+        } else if (data.type === 'SYNC_DB' && data.thread && this._shouldSyncThread(data)) {
+          this.openDB(data.odbAddress, this._cacheNumEntries.bind(this))
+          this.analytics.trackSyncDB(data.odbAddress)
+        }
+        if (data.did) {
+          this._pinDID(data.did)
+        }
+        if (data.muportDID) {
+          this._pinDID(data.muportDID)
+        }
       }
-      if (data.did) {
-        this._pinDID(data.did)
-      }
-      if (data.muportDID) {
-        this._pinDID(data.muportDID)
-      }
+    } catch (err) {
+      this.logger.error(`Error occurred onMessage: ${err}`)
     }
   }
 
