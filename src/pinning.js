@@ -96,7 +96,7 @@ class Pinning {
     OdbIdentityProvider.setDidResolver(this._resolver)
 
     this._pinningResolver = new Resolver({
-      ...get3IdResolver(this.ipfs, { pin: true }),
+      ...get3IdResolver(this.ipfs, { pin: false }),
       ...getMuportResolver(this.ipfs)
     })
 
@@ -349,7 +349,7 @@ class Pinning {
     entries.filter(filter).forEach(async e => {
       const cid = e.payload.value.data
       await this.ipfs.dag.get(cid)
-      this.ipfs.pin.add(cid)
+      // this.ipfs.pin.add(cid)
     })
   }
 
