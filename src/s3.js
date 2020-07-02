@@ -1,4 +1,24 @@
 const S3Store = require('datastore-s3')
+const blocids = ['CIQMQPIVRAWTIBMNG3IMZB4XBLCMAQWJGDHTFEHIW4VUHIPWJAB24HY', 'CIQC6ZB3D7A4L3LVORWKCHG4UOBOCTQQR5HWM3MSUN44G4KDVVB7IEY', 'CIQKUBCQ54HHQ3PLPADO74WCAS4LTC4YAU5VIDAHRVYJXWC5FXEY44Y', 'CIQOHMGEIKMPYHAUTL57JSEZN64SIJ5OIHSGJG4TJSSJLGI3PBJLQVI']
+const logOnMatch = key => {
+  const str = key.toString()
+  if (blocids.find(e => str.includes(e))) {
+    console.trace('For Key:' + str)
+  }
+}
+
+class S3StoreLogger extends S3Store {
+  async get (key) {
+    logOnMatch(key)
+    return super.get(key)
+  }
+
+  async has (key) {
+    logOnMatch(key)
+    return super.get(key)
+  }
+}
+
 // const S3 = require('aws-sdk/clients/s3')
 const AWS = require('aws-sdk')
 
@@ -74,11 +94,11 @@ const ipfsRepo = (config) => {
 
   return new IPFSRepo(path, {
     storageBackends: {
-      blocks: S3Store,
-      // datastore: S3Store,
+      blocks: S3StoreLogger,
+      // datastore: S3StoreLogger,
       datastore: LevelStore,
-      root: S3Store,
-      keys: S3Store
+      root: S3StoreLogger,
+      keys: S3StoreLogger
     },
     storageBackendOptions: {
       blocks: storeConfig,
