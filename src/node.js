@@ -13,7 +13,8 @@ const env = process.env.NODE_ENV || 'development'
 require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
 
 const ORBITDB_PATH = process.env.ORBITDB_PATH
-const IPFS_PATH = process.env.IPFS_PATH
+// const IPFS_PATH = process.env.IPFS_PATH
+const IPFS_PATH = 'ipfs'
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
