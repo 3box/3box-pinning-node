@@ -70,7 +70,8 @@ const ipfsRepo = (config) => {
       s3ForcePathStyle,
       signatureVersion
     }),
-    createIfMissing
+    createIfMissing,
+    cacheEnabled: true
   }
 
   const blockStoreConfig = shardBlockstore ? Object.assign(storeConfig, { sharding: true }) : storeConfig
