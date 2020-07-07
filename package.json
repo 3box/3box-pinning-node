@@ -33,7 +33,7 @@
     "axios": "^0.19.0",
     "bunyan": "^1.8.12",
     "datastore-level": "^1.1.0",
-    "datastore-s3": "^1.0.0",
+    "datastore-s3": "github:3box/js-datastore-s3#feat/caching",
     "did-resolver": "^1.1.0",
     "dotenv": "^6.2.0",
     "exectimer": "^2.2.1",
