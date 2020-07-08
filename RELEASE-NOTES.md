@@ -1,5 +1,8 @@
 # Release Notes
 
+### v1.14.24 - 2020-07-07
+* feat: cache s3 reqs, up datastore s3
+
 ### v1.14.12 - 2020-06-25
 * chore: node ver, mem watch, healthcheck
 

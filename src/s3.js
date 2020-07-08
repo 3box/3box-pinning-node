@@ -54,7 +54,8 @@ const ipfsRepo = (config) => {
     secretAccessKey,
     endpoint,
     s3ForcePathStyle,
-    signatureVersion
+    signatureVersion,
+    shardBlockstore
   } = config
   const createIfMissing = true
 
@@ -69,8 +70,11 @@ const ipfsRepo = (config) => {
       s3ForcePathStyle,
       signatureVersion
     }),
-    createIfMissing
+    createIfMissing,
+    cacheEnabled: true
   }
+
+  const blockStoreConfig = shardBlockstore ? Object.assign(storeConfig, { sharding: true }) : storeConfig
 
   return new IPFSRepo(path, {
     storageBackends: {
@@ -81,7 +85,7 @@ const ipfsRepo = (config) => {
       keys: S3Store
     },
     storageBackendOptions: {
-      blocks: storeConfig,
+      blocks: blockStoreConfig,
       // datastore: storeConfig,
       datastore: {
         db: require('level-mem')

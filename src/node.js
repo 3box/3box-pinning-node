@@ -13,7 +13,8 @@ const env = process.env.NODE_ENV || 'development'
 require('dotenv').config({ path: path.resolve(process.cwd(), `.env.${env}`) })
 
 const ORBITDB_PATH = process.env.ORBITDB_PATH
-const IPFS_PATH = process.env.IPFS_PATH
+// const IPFS_PATH = process.env.IPFS_PATH
+const IPFS_PATH = 'ipfs'
 const SEGMENT_WRITE_KEY = process.env.SEGMENT_WRITE_KEY
 const ANALYTICS_ACTIVE = process.env.ANALYTICS_ACTIVE === 'true'
 const ORBIT_REDIS_PATH = process.env.ORBIT_REDIS_PATH
@@ -28,6 +29,7 @@ const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
 const AWS_S3_ENDPOINT = process.env.AWS_S3_ENDPOINT
 const AWS_S3_ADDRESSING_STYLE = process.env.AWS_S3_ADDRESSING_STYLE
 const AWS_S3_SIGNATURE_VERSION = process.env.AWS_S3_SIGNATURE_VERSION
+const SHARD_BLOCKSTORE = process.env.SHARD_BLOCKSTORE === 'true'
 
 const PIN_SILENT = isBooleanStringSet(process.env.PIN_SILENT)
 const PIN_WHITELIST_DIDS = process.env.PIN_WHITELIST_DIDS ? process.env.PIN_WHITELIST_DIDS.split(',') : null
@@ -54,7 +56,8 @@ function prepareIPFSConfig () {
       secretAccessKey: AWS_SECRET_ACCESS_KEY,
       endpoint: AWS_S3_ENDPOINT,
       s3ForcePathStyle: AWS_S3_ADDRESSING_STYLE === 'path',
-      signatureVersion: AWS_S3_SIGNATURE_VERSION
+      signatureVersion: AWS_S3_SIGNATURE_VERSION,
+      shardBlockstore: SHARD_BLOCKSTORE
     })
   } else if (IPFS_PATH) {
     repo = IPFS_PATH
