@@ -1,5 +1,6 @@
 const { CID } = require('ipfs')
 const OrbitDB = require('orbit-db')
+const memwatch = require('node-memwatch')
 const MessageBroker = require('./messageBroker')
 const Pubsub = require('orbit-db-pubsub')
 const { Resolver } = require('did-resolver')
@@ -26,7 +27,84 @@ AccessControllers.addAccessController({ AccessController: ModeratorAccessControl
 const manifestCacheKey = address => `${address}/_manifest`
 
 const IPFS_METRICS_ENABLED = process.env.IPFS_METRICS_ENABLED === 'true'
-const IPFS_METRICS_INTERVAL = process.env.IPFS_METRICS_INTERVAL || 10000
+const IPFS_METRICS_INTERVAL = process.env.IPFS_METRICS_INTERVAL || 10000 // 10 seconds
+
+const CREATE_HEAP_DIFFS = process.env.CREATE_HEAP_DIFFS === 'true'
+const CREATE_HEAP_DIFFS_INTERVAL = process.env.CREATE_HEAP_DIFFS_INTERVAL || 1800000 // 30 minutes
+const CREATE_HEAP_DIFFS_DELAY = process.env.CREATE_HEAP_DIFFS_DELAY || 600000 // 10 minutes
+
+/**
+ * Creates heap diffs
+ */
+class MemoryInspector {
+  constructor (logger) {
+    this.logger = logger
+    this.enabled = CREATE_HEAP_DIFFS
+  }
+
+  start () {
+    if (this.enabled) {
+      memwatch.on('leak', (info) => {
+        self.logger.warn(JSON.stringify(info))
+      })
+
+      const self = this
+      this.intervalHandler = setInterval(() => {
+        self.logger.debug('Taking first snapshot...')
+        const hd = new memwatch.HeapDiff()
+
+        const timerId = setTimeout(() => {
+          self.logger.debug('Taking second snapshot...')
+          const diff = hd.end()
+          self.logger.info(JSON.stringify(diff))
+          clearTimeout(timerId)
+        }, CREATE_HEAP_DIFFS_DELAY)
+      }, CREATE_HEAP_DIFFS_INTERVAL)
+    }
+  }
+
+  stop () {
+    if (this.enabled) {
+      clearInterval(this.intervalHandler)
+    }
+  }
+}
+
+/**
+ * Logs IPFS metrics
+ */
+class IPFSMetrics {
+  constructor (logger) {
+    this.logger = logger
+    this.enabled = IPFS_METRICS_ENABLED
+  }
+
+  start () {
+    if (this.enabled) {
+      // Log out the bandwidth stats periodically
+      this._ipfsMetricsInterval = setInterval(async () => {
+        try {
+          let stats = this.ipfs.libp2p.metrics.global
+          this.logger.info(`Bandwith Stats: ${JSON.stringify(stats)}`)
+
+          stats = await this.ipfs.stats.bitswap()
+          this.logger.info(`Bitswap Stats: ${JSON.stringify(stats)}`)
+
+          stats = await this.ipfs.stats.repo()
+          this.logger.info(`Repo Stats: ${JSON.stringify(stats)}`)
+        } catch (err) {
+          this.logger.error(`Error occurred trying to check node stats: ${err}`)
+        }
+      }, IPFS_METRICS_INTERVAL)
+    }
+  }
+
+  stop () {
+    if (this.enabled) {
+      clearInterval(this._ipfsMetricsInterval)
+    }
+  }
+}
 
 // A temporary fix for issues described here - https://github.com/orbitdb/orbit-db/pull/688
 // Once a permant fix is merged into orbitdb and we upgrade, we no longer need the
@@ -124,31 +202,18 @@ class Pinning {
     await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
     this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
 
-    if (IPFS_METRICS_ENABLED) {
-      // Log out the bandwidth stats periodically
-      this._ipfsMetricsInterval = setInterval(async () => {
-        try {
-          let stats = this.ipfs.libp2p.metrics.global
-          this.logger.info(`Bandwith Stats: ${JSON.stringify(stats)}`)
+    this._ipfsMetrics = new IPFSMetrics(this.logger)
+    this._ipfsMetrics.start()
 
-          stats = await this.ipfs.stats.bitswap()
-          this.logger.info(`Bitswap Stats: ${JSON.stringify(stats)}`)
-
-          stats = await this.ipfs.stats.repo()
-          this.logger.info(`Repo Stats: ${JSON.stringify(stats)}`)
-        } catch (err) {
-          this.logger.error(`Error occurred trying to check node stats: ${err}`)
-        }
-      }, IPFS_METRICS_INTERVAL)
-    }
+    this._memoryInspector = new MemoryInspector(this.logger)
+    this._memoryInspector.start()
   }
 
   async stop () {
     clearInterval(this._dbCloseinterval)
 
-    if (IPFS_METRICS_ENABLED) {
-      clearInterval(this._ipfsMetricsInterval)
-    }
+    this._ipfsMetrics.close()
+    this._memoryInspector.close()
 
     await this.pubsub.disconnect()
     await this.checkAndCloseDBs()
