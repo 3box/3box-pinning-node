@@ -4,11 +4,7 @@ const AWS = require('aws-sdk')
 
 const LevelStore = require('datastore-level')
 
-// const store = new LevelStore('datastore')
-
-// const memStore = new LevelStore('my/mem/store', {
-//   db: require('level-mem')
-// })
+const S3_CACHE_ENTRY_TTL = process.env.S3_CACHE_ENTRY_TTL || 600000 // 60 seconds
 
 const https = require('https')
 
@@ -71,7 +67,8 @@ const ipfsRepo = (config) => {
       signatureVersion
     }),
     createIfMissing,
-    cacheEnabled: true
+    cacheEnabled: true,
+    cacheTTL: S3_CACHE_ENTRY_TTL
   }
 
   const blockStoreConfig = shardBlockstore ? Object.assign(storeConfig, { sharding: true }) : storeConfig
