@@ -4,29 +4,25 @@ const AWS = require('aws-sdk')
 
 const LevelStore = require('datastore-level')
 
-// const store = new LevelStore('datastore')
-
-// const memStore = new LevelStore('my/mem/store', {
-//   db: require('level-mem')
-// })
-
 const https = require('https')
 
-const agent = new https.Agent({
-  maxSockets: 300,
-  keepAlive: true
-})
+const AWS_LOGGING_ENABLED = process.env.AWS_LOGGING_ENABLED === 'true'
 
 AWS.config.update({
-  logger: console,
-  httpOptions: {
-    timeout: 45000,
-    connectTimeout: 45000,
-    agent: agent
-  },
-  maxRetries: 10,
-  retryDelayOptions: {
-    base: 500
+  ...(AWS_LOGGING_ENABLED) && { logger: console },
+  ...{
+    httpOptions: {
+      timeout: 45000,
+      connectTimeout: 45000,
+      agent: new https.Agent({
+        maxSockets: 300,
+        keepAlive: true
+      })
+    },
+    maxRetries: 10,
+    retryDelayOptions: {
+      base: 500
+    }
   }
 })
 
