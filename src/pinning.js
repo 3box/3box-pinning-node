@@ -44,6 +44,8 @@ class MemoryInspector {
 
   start () {
     if (this.enabled) {
+      this.logger.warn(`'Memory inspector enabled. Creating heap diffs on every ${CREATE_HEAP_DIFFS_INTERVAL} milliseconds`)
+
       memwatch.on('leak', (info) => {
         self.logger.warn(JSON.stringify(info))
       })
@@ -81,6 +83,8 @@ class IPFSMetrics {
 
   start () {
     if (this.enabled) {
+      this.logger.warn(`'IPFS metrics logging enabled. Log metrics on every ${IPFS_METRICS_INTERVAL} milliseconds`)
+
       // Log out the bandwidth stats periodically
       this._ipfsMetricsInterval = setInterval(async () => {
         try {
@@ -163,6 +167,9 @@ class Pinning {
     this.pinWhitelistSpaces = pinWhitelistSpaces
     this.pinSilent = pinSilent
     this.logger = createLogger({ name: 'pinning' })
+
+    this._ipfsMetrics = new IPFSMetrics(this.logger)
+    this._memoryInspector = new MemoryInspector(this.logger)
   }
 
   async start () {
@@ -202,18 +209,15 @@ class Pinning {
     await this.pubsub.subscribe(this.pinningRoom, this._onMessage.bind(this), this._onNewPeer.bind(this))
     this._dbCloseinterval = setInterval(this.checkAndCloseDBs.bind(this), this.dbCheckCloseInterval)
 
-    this._ipfsMetrics = new IPFSMetrics(this.logger)
     this._ipfsMetrics.start()
-
-    this._memoryInspector = new MemoryInspector(this.logger)
     this._memoryInspector.start()
   }
 
   async stop () {
     clearInterval(this._dbCloseinterval)
 
-    this._ipfsMetrics.close()
-    this._memoryInspector.close()
+    this._ipfsMetrics.stop()
+    this._memoryInspector.stop()
 
     await this.pubsub.disconnect()
     await this.checkAndCloseDBs()
