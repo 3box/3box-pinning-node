@@ -1,5 +1,8 @@
 # Release Notes
 
+### v1.14.25 - 2020-07-08
+* feat: s3 cache ttl opt, 60 secs
+
 ### v1.14.24 - 2020-07-07
 * feat: cache s3 reqs, up datastore s3
 
