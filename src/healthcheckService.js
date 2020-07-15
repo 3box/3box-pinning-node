@@ -23,9 +23,6 @@ class HealthcheckService {
     if (cpuFree < 0.05 || memFree < 0.20) {
       return res.status(503).send()
     }
-    if (memFree < 0.20) {
-      return res.status(503).send()
-    }
     return res.status(200).send()
   }
 
