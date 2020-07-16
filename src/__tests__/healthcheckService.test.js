@@ -17,8 +17,8 @@ describe('HealthcheckService', () => {
 
   beforeEach(() => {
     isOnlineMock = jest.spyOn(pinning.ipfs, 'isOnline').mockReturnValue(true)
-    cpuFreeMock.mockImplementation(cb => cb(0.8)) // eslint-disable-line standard/no-callback-literal
-    freememPercentageMock.mockReturnValue(0.8)
+    cpuFreeMock.mockImplementation(cb => cb(0.6)) // eslint-disable-line standard/no-callback-literal
+    freememPercentageMock.mockReturnValue(0.85)
   })
 
   afterEach(() => {
