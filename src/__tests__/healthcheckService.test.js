@@ -17,8 +17,8 @@ describe('HealthcheckService', () => {
 
   beforeEach(() => {
     isOnlineMock = jest.spyOn(pinning.ipfs, 'isOnline').mockReturnValue(true)
-    cpuFreeMock.mockImplementation(cb => cb(0.8)) // eslint-disable-line standard/no-callback-literal
-    freememPercentageMock.mockReturnValue(0.8)
+    cpuFreeMock.mockImplementation(cb => cb(0.6)) // eslint-disable-line standard/no-callback-literal
+    freememPercentageMock.mockReturnValue(0.85)
   })
 
   afterEach(() => {
@@ -26,34 +26,34 @@ describe('HealthcheckService', () => {
     isOnlineMock.mockRestore()
   })
 
-  // it('should return a failure if IPFS isn\'t online', async (done) => {
-  //   isOnlineMock.mockReturnValue(false)
-  //
-  //   request(healthcheckService.app)
-  //     .get('/healthcheck')
-  //     .expect(503)
-  //     .end(done)
-  // })
+  it('should return a failure if IPFS isn\'t online', async (done) => {
+    isOnlineMock.mockReturnValue(false)
 
-  // it('should return a failure on low cpu', async (done) => {
-  //   cpuFreeMock.mockImplementation(cb => cb(0.01)) // eslint-disable-line standard/no-callback-literal
-  //
-  //   request(healthcheckService.app)
-  //     .get('/healthcheck')
-  //     .expect(503)
-  //     .end(done)
-  // })
+    request(healthcheckService.app)
+      .get('/healthcheck')
+      .expect(503)
+      .end(done)
+  })
 
-  // it('should return a failure on low memory', async (done) => {
-  //   freememPercentageMock.mockReturnValue(0.01)
-  //
-  //   request(healthcheckService.app)
-  //     .get('/healthcheck')
-  //     .expect(503)
-  //     .end(done)
-  // })
+  it('should return a failure on low cpu', async (done) => {
+    cpuFreeMock.mockImplementation(cb => cb(0.01)) // eslint-disable-line standard/no-callback-literal
 
-  it('should return a succes if memory, cpu and IPFS status are OK', async (done) => {
+    request(healthcheckService.app)
+      .get('/healthcheck')
+      .expect(503)
+      .end(done)
+  })
+
+  it('should return a failure on low memory', async (done) => {
+    freememPercentageMock.mockReturnValue(0.01)
+
+    request(healthcheckService.app)
+      .get('/healthcheck')
+      .expect(503)
+      .end(done)
+  })
+
+  it('should return a success if memory, cpu and IPFS status are OK', async (done) => {
     request(healthcheckService.app)
       .get('/healthcheck')
       .expect(200)

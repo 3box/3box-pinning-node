@@ -34,17 +34,19 @@ class Analytics {
 
   // backwards compatible, pindb for dbs with address links not in rootstore
   trackPinDBAddress (address) {
-    const data = {}
-    data.event = 'pin_db_address'
-    data.properties = { address_hash: hash(address) }
-    this._track(data, hash(address))
+    // Temporary
+    // const data = {}
+    // data.event = 'pin_db_address'
+    // data.properties = { address_hash: hash(address) }
+    // this._track(data, hash(address))
   }
 
   trackSyncDB (odbAddress) {
-    const data = {}
-    data.event = 'sync_db'
-    data.properties = { address: odbAddress }
-    this._track(data)
+    // Temporary
+    // const data = {}
+    // data.event = 'sync_db'
+    // data.properties = { address: odbAddress }
+    // this._track(data)
   }
 
   trackInfraMetrics () {

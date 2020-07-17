@@ -1,5 +1,9 @@
 # Release Notes
 
+### v1.14.26 - 2020-07-17
+* chore: healthcheck mem/cpu limit config, default low
+* feat: healthcheck enable
+
 ### v1.14.25 - 2020-07-08
 * feat: s3 cache ttl opt, 60 secs
 
