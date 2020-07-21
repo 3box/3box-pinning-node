@@ -44,6 +44,8 @@
     "ipfs-repo": "^3.0.2",
     "js-sha256": "^0.9.0",
     "level-mem": "^5.0.1",
+    "libp2p-gossipsub": "github:zachferland/js-libp2p-gossipsub#7e26a1dc757da433358d02ae7c18eadabf2da6eb",
+    "libp2p-pubsub": "github:zachferland/js-libp2p-pubsub#24e80c2d6fafbd570b26070ec0d8dd0b7e9e9592",
     "multihashes": "^0.4.14",
     "muport-did-resolver": "^1.0.3",
     "orbit-db": "^0.24.2",

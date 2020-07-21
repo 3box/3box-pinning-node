@@ -9,20 +9,24 @@ jobs:
   test:
     working_directory: ~/3box-pinning-server
     docker:
-      - image: circleci/node:10
+      - image: circleci/node:10.12.0
     steps:
       - checkout
 
       # Download and cache dependencies
       - restore_cache:
           keys:
-            - dependencies-cache-{{ checksum "package.json" }}
+            - dependencies-cache-{{ checksum "package-lock.json" }}
 
       - run:
           name: install dependencies
           command: |
             sudo npm i -g  codecov node-gyp
-            npm i
+            npm ci
+
+      # - run:
+      #     name: versions
+      #     command: npm list libp2p-gossipsub
 
       - run:
           name: test
@@ -37,7 +41,7 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash)
 
       - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          key: dependency-cache-{{ checksum "package-lock.json" }}
           paths:
             - ./node_modules
 
