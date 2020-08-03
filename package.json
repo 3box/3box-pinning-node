@@ -46,7 +46,7 @@
     "level-mem": "^5.0.1",
     "libp2p-gossipsub": "github:zachferland/js-libp2p-gossipsub#7e26a1dc757da433358d02ae7c18eadabf2da6eb",
     "libp2p-pubsub": "github:zachferland/js-libp2p-pubsub#870b36536599bc1e802085e3e3187fa92712540d",
-    "multihashes": "^0.4.14",
+    "multihashes": "^3.0.1",
     "muport-did-resolver": "^1.0.3",
     "orbit-db": "^0.24.2",
     "orbit-db-cache-redis": "^0.1.2",
