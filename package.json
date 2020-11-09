@@ -29,7 +29,7 @@
     "3box-orbitdb-plugins": "^2.1.2",
     "3id-resolver": "^1.0.0",
     "analytics-node": "^3.3.0",
-    "aws-sdk": "^2.702.0",
+    "aws-sdk": "^2.787.0",
     "axios": "^0.19.0",
     "bunyan": "^1.8.12",
     "datastore-level": "^1.1.0",
