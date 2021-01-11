@@ -31,7 +31,7 @@
     "analytics-node": "^3.3.0",
     "aws-sdk": "^2.702.0",
     "axios": "^0.19.0",
-    "bunyan": "^1.8.12",
+    "bunyan": "^1.8.15",
     "datastore-level": "^1.1.0",
     "datastore-s3": "github:3box/js-datastore-s3",
     "did-resolver": "^1.1.0",
