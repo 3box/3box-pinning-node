@@ -44,7 +44,7 @@
     "ipfs-repo": "^3.0.2",
     "js-sha256": "^0.9.0",
     "level-mem": "^5.0.1",
-    "multihashes": "^0.4.14",
+    "multihashes": "^3.1.1",
     "muport-did-resolver": "^1.0.3",
     "orbit-db": "^0.24.2",
     "orbit-db-cache-redis": "^0.1.2",
