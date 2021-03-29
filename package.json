@@ -34,7 +34,7 @@
     "bunyan": "^1.8.12",
     "datastore-level": "^1.1.0",
     "datastore-s3": "github:3box/js-datastore-s3",
-    "did-resolver": "^1.1.0",
+    "did-resolver": "^3.1.0",
     "dotenv": "^6.2.0",
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
