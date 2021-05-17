@@ -35,7 +35,7 @@
     "datastore-level": "^1.1.0",
     "datastore-s3": "github:3box/js-datastore-s3",
     "did-resolver": "^1.1.0",
-    "dotenv": "^6.2.0",
+    "dotenv": "^9.0.2",
     "exectimer": "^2.2.1",
     "express": "^4.16.4",
     "ipfs": "0.46.0",
